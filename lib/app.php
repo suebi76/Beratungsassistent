@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-const APP_VERSION = '0.1.0';
+const APP_VERSION = '0.2.0';
 const DEFAULT_MODEL_NAME = 'gemini-2.5-flash';
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const MAX_TEXT_SOURCE_BYTES = 900000;
@@ -18,13 +18,39 @@ function app_root(string $path = ''): string
     return $root . DIRECTORY_SEPARATOR . ltrim($clean, DIRECTORY_SEPARATOR);
 }
 
-function config_dir(): string { return app_root('config'); }
-function rag_dir(): string { return app_root('rag'); }
-function chunks_dir(): string { return app_root('rag/chunks'); }
-function uploads_dir(): string { return app_root('rag/uploads'); }
-function api_config_file(): string { return app_root('config/config.php'); }
-function project_config_file(): string { return app_root('config/project.json'); }
-function password_file(): string { return app_root('rag/.admin_password'); }
+function configured_data_root(): ?string
+{
+    $value = getenv('BERATUNGSASSISTENT_DATA_DIR');
+    if (!is_string($value)) {
+        return null;
+    }
+
+    $value = trim($value);
+    if ($value === '') {
+        return null;
+    }
+
+    return rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $value), DIRECTORY_SEPARATOR);
+}
+
+function runtime_root(string $path = ''): string
+{
+    $root = configured_data_root() ?? app_root();
+    if ($path === '') {
+        return $root;
+    }
+
+    $clean = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path);
+    return $root . DIRECTORY_SEPARATOR . ltrim($clean, DIRECTORY_SEPARATOR);
+}
+
+function config_dir(): string { return runtime_root('config'); }
+function rag_dir(): string { return runtime_root('rag'); }
+function chunks_dir(): string { return runtime_root('rag/chunks'); }
+function uploads_dir(): string { return runtime_root('rag/uploads'); }
+function api_config_file(): string { return runtime_root('config/config.php'); }
+function project_config_file(): string { return runtime_root('config/project.json'); }
+function password_file(): string { return runtime_root('rag/.admin_password'); }
 
 function ensure_app_dirs(): void
 {

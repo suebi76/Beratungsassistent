@@ -2,37 +2,53 @@
 
 ## Voraussetzungen
 
-- Apache oder ein anderer PHP-fähiger Webserver
 - PHP 8.0+
 - PHP-Erweiterungen: `curl`, `fileinfo`, `mbstring`
-- Schreibrechte für:
-  `config/`
-  `rag/chunks/`
-  `rag/uploads/`
+- Schreibrechte für das Laufzeitdatenverzeichnis
 - Ein Gemini-API-Key
+
+## Laufzeitdaten
+
+Standardmäßig schreibt der Assistent in `config/` und `rag/` innerhalb des Projekts.
+
+Für produktive Deployments wird empfohlen, die Umgebungsvariable `BERATUNGSASSISTENT_DATA_DIR` auf ein Verzeichnis außerhalb des Webroots zu setzen. Dort werden dann gespeichert:
+
+- `config/config.php`
+- `config/project.json`
+- `rag/.admin_password`
+- `rag/chunks/`
+- `rag/uploads/`
 
 ## Ersteinrichtung
 
 ### 1. Dateien deployen
 
-Den gesamten Projektordner auf den Webserver kopieren.
+Den Projektordner auf den Webserver kopieren oder das VPS-Paket aus dem Release entpacken.
 
-### 2. Admin-Wizard starten
+### 2. Optional externes Datenverzeichnis setzen
+
+Beispiel unter Apache:
+
+```apache
+SetEnv BERATUNGSASSISTENT_DATA_DIR /var/lib/beratungsassistent
+```
+
+### 3. Admin-Wizard starten
 
 `admin.php` im Browser aufrufen.
 
-### 3. Schritt 1: Admin-Passwort
+### 4. Schritt 1: Admin-Passwort
 
 - Passwort festlegen
-- Das Passwort wird als Hash in `rag/.admin_password` gespeichert
+- Das Passwort wird als Hash im Datenverzeichnis gespeichert
 
-### 4. Schritt 2: API-Key
+### 5. Schritt 2: API-Key
 
 - Gemini-API-Key eintragen
 - Optional das Modell anpassen
-- Die Konfiguration wird in `config/config.php` gespeichert
+- Die Konfiguration wird im Datenverzeichnis unter `config/config.php` gespeichert
 
-### 5. Schritt 3: Projektprofil
+### 6. Schritt 3: Projektprofil
 
 - Titel des Beratungsassistenten festlegen
 - Themenfeld beschreiben
@@ -44,33 +60,24 @@ Diese Angaben steuern:
 - den Titel und Untertitel im Frontend
 - den fachlichen Scope des Assistenten
 
-### 6. Schritt 4: Dateien hochladen
+### 7. Schritt 4: Dateien hochladen
 
 - Eine oder mehrere Dateien hochladen
 - In dieser ersten Version werden PDF, TXT und Markdown unterstützt
 
 Beim Upload passieren drei Dinge:
 
-1. Die Originaldateien werden in `rag/uploads/` gespeichert.
+1. Die Originaldateien werden im Datenverzeichnis unter `rag/uploads/` gespeichert.
 2. Gemini erzeugt daraus Markdown-Chunks in `rag/chunks/`.
 3. Aus den vorhandenen Chunks werden Quick Questions, Aufgabenbeispiele und Vorlagen für das Frontend neu erzeugt.
 
-### 7. Einsatzbereit
+### 8. Einsatzbereit
 
 Nach dem letzten Schritt ist der Assistent unter `index.html` direkt nutzbar.
 
-## Laufender Betrieb
-
-Im Admin-Dashboard können danach:
-
-- weitere Dateien hochgeladen werden
-- das Projektprofil angepasst werden
-- Frontend-Beispiele aus der Wissensbasis neu generiert werden
-- einzelne Chunks gelöscht werden
-- API-Key und Passwort geändert werden
-
 ## Hinweise zum Hosting
 
-- Der API-Key darf nie ins Frontend oder in ein öffentliches JavaScript gelangen.
-- Die Verzeichnisse `config/` und `rag/` sollten per Serverregel gegen direkten HTTP-Zugriff geschützt sein.
+- Der API-Key darf nie ins Frontend oder in öffentliches JavaScript gelangen.
+- Das Datenverzeichnis sollte in Produktion außerhalb des Webroots liegen.
 - Wenn der Assistent hinter einem Reverse Proxy läuft, sollte Streaming für `proxy.php` nicht gepuffert werden.
+- Für Docker und VPS-Bereitstellung siehe `DEPLOY.md`.

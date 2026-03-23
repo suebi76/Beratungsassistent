@@ -1,3 +1,9 @@
+.git
+.gitignore
+dist/
+docker-data/
+.vscode/
+.idea/
 config/config.php
 config/project.json
 rag/.admin_password
@@ -5,9 +11,3 @@ rag/chunks/*
 !rag/chunks/.gitkeep
 rag/uploads/*
 !rag/uploads/.gitkeep
-dist/
-docker-data/
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/

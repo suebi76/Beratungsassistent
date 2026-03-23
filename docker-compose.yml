@@ -1,0 +1,14 @@
+services:
+  app:
+    build: .
+    container_name: beratungsassistent
+    ports:
+      - "8080:80"
+    environment:
+      BERATUNGSASSISTENT_DATA_DIR: /data
+    volumes:
+      - beratungsassistent-data:/data
+    restart: unless-stopped
+
+volumes:
+  beratungsassistent-data:

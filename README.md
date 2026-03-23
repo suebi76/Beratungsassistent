@@ -12,23 +12,32 @@ Beim ersten Start werden Admin-Passwort, Gemini-API-Key, Titel, Themenfeld und Z
 - Upload von PDF, TXT und Markdown
 - Automatische Chunk-Erzeugung für die Wissensbasis
 - Automatische Generierung von Quick Questions, Aufgabenbeispielen und Vorlagen
+- Docker-Deployment mit persistentem Datenverzeichnis
+- VPS-Paket für klassische PHP-Webserver
 - Lokale Bibliotheken in `vendor/`, kein CDN im Frontend
 
-## Einrichtung
+## Schnellstart
 
-1. Die Projektdateien auf einen PHP-Webserver mit `curl`, `fileinfo` und `mbstring` laden.
-2. `admin.php` im Browser öffnen.
-3. Im Wizard Admin-Passwort, Gemini-API-Key, Titel, Themenfeld und Zielgruppe festlegen.
-4. Eine oder mehrere Dateien für die Wissensbasis hochladen.
-5. Danach ist der Assistent unter `index.html` einsatzbereit.
+### Docker
 
-Die ausführliche Schritt-für-Schritt-Anleitung steht in `SETUP.md`.
+1. `docker compose up -d --build`
+2. `http://localhost:8080/admin.php` öffnen
+3. Im Wizard Passwort, API-Key, Projektprofil und Wissensbasis einrichten
 
-## Dateiformate
+Persistente Daten liegen im Container-Setup standardmäßig unter `/data`.
 
-- PDF
-- TXT
-- Markdown (`.md`, `.markdown`)
+### VPS oder klassischer Webserver
+
+1. Das Release-ZIP herunterladen oder das Repository deployen
+2. Die Dateien auf einen PHP-Webserver mit `curl`, `fileinfo` und `mbstring` kopieren
+3. Optional `BERATUNGSASSISTENT_DATA_DIR` auf ein Verzeichnis außerhalb des Webroots setzen
+4. `admin.php` im Browser öffnen und die Ersteinrichtung durchführen
+
+## Deployment
+
+- Ausführliche Setup-Schritte: `SETUP.md`
+- Docker- und VPS-Hinweise: `DEPLOY.md`
+- VPS-Paket lokal erstellen: `scripts/create-release-package.ps1`
 
 ## Projektstruktur
 
@@ -38,21 +47,24 @@ admin.php               Wizard und Admin-Dashboard
 proxy.php               Serverseitiger Gemini-Proxy mit Retrieval
 project.php             Öffentliche Laufzeit-Konfiguration für das Frontend
 lib/app.php             Gemeinsame PHP-Helfer für Konfiguration, Upload, Chunking und Retrieval
-config/                 API- und Projektkonfiguration
-rag/                    Hochgeladene Dateien und generierte Wissens-Chunks
+config/                 Beispielkonfiguration im Repository
+rag/                    Beispielstruktur für Uploads und generierte Chunks
+docker/                 Container-Konfiguration
+scripts/                Hilfsskripte für Auslieferung und Releases
 vendor/                 Lokal eingebundene Bibliotheken
 ```
 
-## Technischer Hinweis
+## Persistente Daten
 
-Der Assistent nutzt eine dokumentbasierte Wissensbasis: Hochgeladene Inhalte werden in Chunks aufgeteilt, serverseitig durchsucht und als Kontext für die Antwortgenerierung verwendet.
+Standardmäßig speichert der Assistent Laufzeitdaten im Projekt unter `config/` und `rag/`. Für Deployment-Umgebungen kann stattdessen die Umgebungsvariable `BERATUNGSASSISTENT_DATA_DIR` gesetzt werden. Dann landen Konfiguration, Passwort, Uploads und Chunks in diesem externen Verzeichnis.
 
 ## Sicherheit und Betrieb
 
-- API-Key bleibt serverseitig in `config/config.php`
-- Admin-Passwort wird gehasht in `rag/.admin_password` gespeichert
+- API-Key bleibt serverseitig in `config/config.php` oder im externen Datenverzeichnis
+- Admin-Passwort wird gehasht gespeichert
 - Wissensdateien und Chunks werden nur serverseitig verwendet
 - Der System-Prompt wird nicht aus dem Frontend übernommen
+- Für Produktion sollte das Datenverzeichnis außerhalb des Webroots liegen
 
 ## Kontakt
 
