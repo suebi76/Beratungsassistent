@@ -1,15 +1,15 @@
 # Beratungsassistent
 
-Konfigurierbarer KI-Beratungsassistent mit dateibasierter Wissensbasis, serverseitigem Gemini-Proxy und einer gefuehrten Ersteinrichtung.
+Konfigurierbarer KI-Beratungsassistent mit dateibasierter Wissensbasis, serverseitigem Gemini-Proxy und einer geführten Ersteinrichtung.
 
-Die Anwendung ist als generischer Starter aufgebaut: Beim ersten Start werden Admin-Passwort, API-Key, Titel, Themenfeld und Zielgruppe festgelegt. Anschliessend werden eine oder mehrere Dateien hochgeladen, aus denen die Wissensbasis, die Quick Questions und die Vorlagen fuer das Frontend erzeugt werden.
+Die Anwendung ist als generischer Starter aufgebaut: Beim ersten Start werden Admin-Passwort, API-Key, Titel, Themenfeld und Zielgruppe festgelegt. Anschließend werden eine oder mehrere Dateien hochgeladen, aus denen die Wissensbasis, die Quick Questions und die Vorlagen für das Frontend erzeugt werden.
 
 ## Funktionen
 
-- Gefuehrter First-Run-Wizard in vier Schritten: Passwort, API, Profil, Dateien
+- Geführter First-Run-Wizard in vier Schritten: Passwort, API, Profil, Dateien
 - Serverseitiger Gemini-Proxy: Kein API-Key im Browser
 - Generische Projektkonfiguration: Titel, Scope, Zielgruppe und UI-Beispiele kommen aus einer gemeinsamen Konfigurationsdatei
-- Dokumentgestuetzte Wissensbasis: Upload von PDF, TXT und Markdown
+- Dokumentgestützte Wissensbasis: Upload von PDF, TXT und Markdown
 - Automatische Chunk-Erzeugung per Gemini
 - Automatische Frontend-Generierung aus der Wissensbasis:
   Quick Questions, Aufgabenbeispiele und Vorlagen werden nach dem Upload neu erzeugt
@@ -19,14 +19,14 @@ Die Anwendung ist als generischer Starter aufgebaut: Beim ersten Start werden Ad
 ## Projektstruktur
 
 ```text
-index.html              React-Frontend fuer normale Nutzer
+index.html              React-Frontend für normale Nutzer
 admin.php               Wizard und Admin-Dashboard
 proxy.php               Serverseitiger Gemini-Proxy mit Retrieval
-project.php             Oeffentliche Laufzeit-Konfiguration fuer das Frontend
-lib/app.php             Gemeinsame PHP-Helfer fuer Konfiguration, Upload, Chunking und Retrieval
+project.php             Öffentliche Laufzeit-Konfiguration für das Frontend
+lib/app.php             Gemeinsame PHP-Helfer für Konfiguration, Upload, Chunking und Retrieval
 config/
-  config.php.example    Beispiel fuer API-Konfiguration
-  project.json.example  Beispiel fuer die Projektkonfiguration
+  config.php.example    Beispiel für API-Konfiguration
+  project.json.example  Beispiel für die Projektkonfiguration
 rag/
   ANLEITUNG.md          Hinweise zum Chunk-Format und zur Wissensbasis
   chunks/               Generierte Wissens-Chunks
@@ -45,7 +45,7 @@ vendor/                 Lokal eingebundene Bibliotheken
    Eine oder mehrere Dateien hochladen
 4. Nach der Verarbeitung ist der Assistent unter `index.html` sofort einsatzbereit.
 
-Eine ausfuehrlichere Schritt-fuer-Schritt-Anleitung steht in `SETUP.md`.
+Eine ausführlichere Schritt-für-Schritt-Anleitung steht in `SETUP.md`.
 
 ## Wie das RAG hier funktioniert
 
@@ -53,10 +53,10 @@ Dieses Projekt ist ein RAG-System, aber in einer bewusst einfachen ersten Ausbau
 
 - Die hochgeladenen Dokumente werden in fachliche Markdown-Chunks zerlegt.
 - Bei jeder Nutzerfrage werden diese Chunks serverseitig erneut durchsucht.
-- Die besten Treffer werden an den System-Prompt angehaengt.
+- Die besten Treffer werden an den System-Prompt angehängt.
 - Das Modell generiert die Antwort auf Basis der Frage plus der abgerufenen Chunks.
 
-Wichtig fuer die Einordnung:
+Wichtig für die Einordnung:
 
 - Ja, das ist Retrieval-Augmented Generation, weil vor der Antwort relevante Wissensfragmente aus einer externen Wissensbasis geholt und in die Generierung eingebettet werden.
 - Nein, es ist kein Vektor-RAG mit Embeddings oder einer Vector Database.
@@ -68,9 +68,9 @@ Wichtig fuer die Einordnung:
 
 Die bestehende 1:1-Version unter `KI Chatbot-1zu1` war bereits ein funktionierendes RAG-System im engeren Sinn:
 
-- Es gab persistente Wissens-Chunks ausserhalb des Modells.
+- Es gab persistente Wissens-Chunks außerhalb des Modells.
 - Vor jeder Antwort wurden passende Chunks aus dem Dateisystem gesucht.
-- Diese Chunks wurden an den Prompt angehaengt.
+- Diese Chunks wurden an den Prompt angehängt.
 
 Die Grenzen der alten Version lagen nicht im "Ob", sondern im "Wie":
 
@@ -86,14 +86,14 @@ Die neue Version verallgemeinert genau diese Architektur.
 - TXT
 - Markdown (`.md`, `.markdown`)
 
-Weitere Formate koennen spaeter ueber dieselbe Ingest-Pipeline ergaenzt werden.
+Weitere Formate können später über dieselbe Ingest-Pipeline ergänzt werden.
 
 ## Sicherheit und Betrieb
 
 - API-Key bleibt serverseitig in `config/config.php`
 - Admin-Passwort wird gehasht in `rag/.admin_password` gespeichert
-- Wissensdateien und Chunks liegen ausserhalb des normalen Frontend-Zugriffs und werden nur ueber PHP verwendet
-- Der serverseitige Prompt wird nicht aus dem Frontend uebernommen, sondern aus der Projektkonfiguration erzeugt
+- Wissensdateien und Chunks liegen außerhalb des normalen Frontend-Zugriffs und werden nur über PHP verwendet
+- Der serverseitige Prompt wird nicht aus dem Frontend übernommen, sondern aus der Projektkonfiguration erzeugt
 
 ## Lizenz
 

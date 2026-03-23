@@ -157,8 +157,8 @@ function default_project_config(): array
         'scope_summary' => '',
         'scope_bullets' => [],
         'safety' => [
-            'pii_notice' => 'Bitte keine personenbezogenen Daten, vertraulichen Einzelfaelle oder geheimhaltungsbeduerftigen Inhalte eingeben.',
-            'pii_rejection_message' => 'Bitte geben Sie keine personenbezogenen Daten oder vertraulichen Einzelfaelle ein. Formulieren Sie Ihre Frage allgemeiner, dann helfe ich gerne weiter.',
+            'pii_notice' => 'Bitte keine personenbezogenen Daten, vertraulichen Einzelfälle oder geheimhaltungsbedürftigen Inhalte eingeben.',
+            'pii_rejection_message' => 'Bitte geben Sie keine personenbezogenen Daten oder vertraulichen Einzelfälle ein. Formulieren Sie Ihre Frage allgemeiner, dann helfe ich gerne weiter.',
             'out_of_scope_message' => 'Zu dieser Frage liegen im aktuell geladenen Wissensbestand keine belastbaren Informationen vor.',
             'citation_required' => true,
             'scope_guard' => true,
@@ -502,7 +502,7 @@ function build_rag_block(array $chunks): string
 
     $parts = [];
     $parts[] = '=== WISSENSDATENBANK ===';
-    $parts[] = 'Nutze die folgenden Chunks als vorrangige Arbeitsgrundlage. Nenne am Ende unter "**Quellen:**" nur Quellen, die du tatsaechlich verwendet hast.';
+    $parts[] = 'Nutze die folgenden Chunks als vorrangige Arbeitsgrundlage. Nenne am Ende unter "**Quellen:**" nur Quellen, die du tatsächlich verwendet hast.';
     $parts[] = '';
 
     foreach ($chunks as $index => $chunk) {
@@ -571,7 +571,7 @@ function validate_uploaded_file(array $file): array
     $name = (string) ($file['name'] ?? '');
     $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
     if (!array_key_exists($extension, supported_extensions())) {
-        return ['ok' => false, 'error' => 'Nicht unterstuetzter Dateityp. Erlaubt sind PDF, TXT und Markdown.'];
+        return ['ok' => false, 'error' => 'Nicht unterstützter Dateityp. Erlaubt sind PDF, TXT und Markdown.'];
     }
 
     $tmp = (string) ($file['tmp_name'] ?? '');
@@ -637,7 +637,7 @@ function build_chunk_generation_prompt(array $project, string $originalName, str
     $topic = trim((string) ($project['topic'] ?? ''));
     $audience = trim((string) ($project['audience'] ?? ''));
 
-    return "Du erstellst Wissens-Chunks fuer eine Retrieval-Augmented-Generation-Wissensbasis.\n"
+    return "Du erstellst Wissens-Chunks für eine Retrieval-Augmented-Generation-Wissensbasis.\n"
         . "Projektkontext:\n"
         . "- Titel des Assistenten: {$title}\n"
         . "- Themenfeld: {$topic}\n"
@@ -648,16 +648,16 @@ function build_chunk_generation_prompt(array $project, string $originalName, str
         . "- Jeder Chunk soll genau ein Thema, einen Prozess, eine Regel oder eine wiederkehrende Beratungsfrage abdecken.\n"
         . "- Schreibe sachlich, nah an der Quelle und ohne Marketing-Sprache.\n"
         . "- Nutze Deutsch.\n"
-        . "- Pro Chunk: etwa 180 bis 500 Woerter.\n"
-        . "- Nutze Markdown mit sinnvollen Ueberschriften und kompakten Listen.\n"
-        . "- Fuege 8 bis 12 aussagekraeftige Tags hinzu, inklusive gebraeuchlicher Synonyme.\n"
+        . "- Pro Chunk: etwa 180 bis 500 Wörter.\n"
+        . "- Nutze Markdown mit sinnvollen Überschriften und kompakten Listen.\n"
+        . "- Füge 8 bis 12 aussagekräftige Tags hinzu, inklusive gebräuchlicher Synonyme.\n"
         . "- Nutze im Feld `quelle` den erkennbaren Dokumenttitel, sonst den Dateinamen.\n"
         . "- Erfinde keine Fakten, die nicht aus der Datei ableitbar sind.\n"
-        . "- Wenn ein Dokument mehrere Themen enthaelt, erzeuge mehrere Chunks.\n\n"
-        . "Gib ausschliesslich dieses Format zurueck, ohne Einleitung und ohne Schlusskommentar:\n\n"
+        . "- Wenn ein Dokument mehrere Themen enthält, erzeuge mehrere Chunks.\n\n"
+        . "Gib ausschließlich dieses Format zurück, ohne Einleitung und ohne Schlusskommentar:\n\n"
         . "CHUNK_START\n"
         . "---\n"
-        . "title: Praegnanter Titel\n"
+        . "title: Prägnanter Titel\n"
         . "tags: tag1, tag2, tag3, tag4, tag5, tag6, tag7, tag8\n"
         . "quelle: Dokumenttitel oder Dateiname\n"
         . "---\n\n"
@@ -686,7 +686,7 @@ function build_document_parts_for_gemini(string $path, string $originalName, str
 function gemini_generate_text(array $parts, array $apiConfig, array $options = []): array
 {
     if (!api_key_is_configured($apiConfig)) {
-        return ['ok' => false, 'error' => 'Kein gueltiger Gemini-API-Key konfiguriert.'];
+        return ['ok' => false, 'error' => 'Kein gültiger Gemini-API-Key konfiguriert.'];
     }
 
     $payload = [
@@ -872,14 +872,14 @@ function build_profile_generation_prompt(array $project, array $chunks): string
         $chunkDigest[] = '  Auszug: ' . excerpt((string) $chunk['body'], 220);
     }
 
-    return "Erstelle aus einer vorhandenen Wissensbasis die oeffentliche Projektkonfiguration fuer einen deutschen Beratungsassistenten.\n"
+    return "Erstelle aus einer vorhandenen Wissensbasis die öffentliche Projektkonfiguration für einen deutschen Beratungsassistenten.\n"
         . "Projektangaben:\n"
         . "- Titel: {$title}\n"
         . "- Themenfeld: {$topic}\n"
         . "- Zielgruppe: " . ($audience !== '' ? $audience : 'nicht angegeben') . "\n\n"
-        . "Wissensbasis (Auszuege aus vorhandenen Chunks):\n"
+        . "Wissensbasis (Auszüge aus vorhandenen Chunks):\n"
         . implode("\n", $chunkDigest) . "\n\n"
-        . "Liefere ausschliesslich JSON in genau dieser Struktur:\n"
+        . "Liefere ausschließlich JSON in genau dieser Struktur:\n"
         . "{\n"
         . "  \"subtitle\": \"...\",\n"
         . "  \"assistant_mission\": \"...\",\n"
@@ -911,10 +911,10 @@ function build_profile_generation_prompt(array $project, array $chunks): string
         . "- Nur Aussagen, die aus der Wissensbasis ableitbar sind.\n"
         . "- `scope_bullets`: 4 bis 6 knappe Bereiche.\n"
         . "- `quick_questions`: genau 6 kurze, realistische Nutzerfragen.\n"
-        . "- `task_examples`: genau 4 konkrete Arbeitsauftraege.\n"
+        . "- `task_examples`: genau 4 konkrete Arbeitsaufträge.\n"
         . "- `templates`: genau 4 Sektionen mit jeweils 3 Optionen.\n"
-        . "- Die Prompts muessen unmittelbar als Beratungsfrage oder Arbeitsauftrag verwendbar sein.\n"
-        . "- Keine Hinweise auf Dateinamen im UI-Text, ausser es ist fachlich notwendig.";
+        . "- Die Prompts müssen unmittelbar als Beratungsfrage oder Arbeitsauftrag verwendbar sein.\n"
+        . "- Keine Hinweise auf Dateinamen im UI-Text, außer es ist fachlich notwendig.";
 }
 
 function fallback_profile(array $project, array $chunks): array
@@ -932,14 +932,14 @@ function fallback_profile(array $project, array $chunks): array
 
     $taskExamples = [];
     foreach (array_slice($titles, 0, 4) as $title) {
-        $taskExamples[] = 'Fasse die wichtigsten Punkte zu "' . $title . '" fuer eine Beratungssituation zusammen.';
+        $taskExamples[] = 'Fasse die wichtigsten Punkte zu "' . $title . '" für eine Beratungssituation zusammen.';
     }
 
     $templateOptions = [];
     foreach (array_slice($titles, 0, 12) as $title) {
         $templateOptions[] = [
             'label' => mb_substr($title, 0, 34, 'UTF-8'),
-            'prompt' => 'Erlaeutere die wichtigsten Inhalte und Handlungsoptionen zu "' . $title . '" auf Basis der hinterlegten Wissensbasis.',
+            'prompt' => 'Erläutere die wichtigsten Inhalte und Handlungsoptionen zu "' . $title . '" auf Basis der hinterlegten Wissensbasis.',
         ];
     }
 
@@ -956,8 +956,8 @@ function fallback_profile(array $project, array $chunks): array
     }
 
     return [
-        'subtitle' => 'Konfigurierbarer Assistent fuer ' . $topic,
-        'assistant_mission' => 'Unterstuetzt bei fachlichen Fragen und Arbeitsauftraegen auf Basis der hinterlegten Dokumente.',
+        'subtitle' => 'Konfigurierbarer Assistent für ' . $topic,
+        'assistant_mission' => 'Unterstützt bei fachlichen Fragen und Arbeitsaufträgen auf Basis der hinterlegten Dokumente.',
         'scope_summary' => 'Antwortet innerhalb des konfigurierten Themenfelds auf Basis des geladenen Wissensbestands.',
         'scope_bullets' => array_slice($titles, 0, 5),
         'knowledge_profile' => [
@@ -1058,11 +1058,11 @@ function build_system_prompt(array $project, array $retrievedChunks): string
     $mission = trim((string) ($project['assistant_mission'] ?? ''));
     $scopeSummary = trim((string) ($project['scope_summary'] ?? ''));
     $outOfScope = trim((string) ($project['safety']['out_of_scope_message'] ?? 'Zu dieser Frage liegen im aktuell geladenen Wissensbestand keine belastbaren Informationen vor.'));
-    $piiReject = trim((string) ($project['safety']['pii_rejection_message'] ?? 'Bitte geben Sie keine personenbezogenen Daten oder vertraulichen Einzelfaelle ein.'));
+    $piiReject = trim((string) ($project['safety']['pii_rejection_message'] ?? 'Bitte geben Sie keine personenbezogenen Daten oder vertraulichen Einzelfälle ein.'));
 
     $lines = [];
     $lines[] = 'ROLLE UND KONTEXT:';
-    $lines[] = "Du bist \"{$title}\", ein spezialisierter Beratungsassistent fuer {$audience}.";
+    $lines[] = "Du bist \"{$title}\", ein spezialisierter Beratungsassistent für {$audience}.";
     $lines[] = "Themenfeld: {$topic}.";
     if ($mission !== '') {
         $lines[] = 'Mission: ' . $mission;
@@ -1080,14 +1080,14 @@ function build_system_prompt(array $project, array $retrievedChunks): string
 
     $lines[] = '';
     $lines[] = 'ARBEITSREGELN:';
-    $lines[] = '- Antworte ausschliesslich auf Deutsch.';
+    $lines[] = '- Antworte ausschließlich auf Deutsch.';
     $lines[] = '- Antworte strukturiert in Markdown.';
-    $lines[] = '- Nutze vorrangig die beigefuegte Wissensdatenbank.';
-    $lines[] = '- Wenn die Frage mit den verfuegbaren Quellen nicht belastbar beantwortbar ist oder klar ausserhalb des Themenfelds liegt, antworte exakt: "' . $outOfScope . '"';
-    $lines[] = '- Verarbeite keine personenbezogenen Daten, vertraulichen Einzelfaelle, Kennungen, Seriennummern oder Geheimnisse.';
-    $lines[] = '- Wenn eine Anfrage solche Inhalte enthaelt, antworte exakt: "' . $piiReject . '"';
-    $lines[] = '- Nenne am Ende unter "**Quellen:**" die tatsaechlich genutzten Quellen aus den Chunks.';
-    $lines[] = '- Erfinde keine Fakten, wenn die Quellen unklar oder unvollstaendig sind.';
+    $lines[] = '- Nutze vorrangig die beigefügte Wissensdatenbank.';
+    $lines[] = '- Wenn die Frage mit den verfügbaren Quellen nicht belastbar beantwortbar ist oder klar außerhalb des Themenfelds liegt, antworte exakt: "' . $outOfScope . '"';
+    $lines[] = '- Verarbeite keine personenbezogenen Daten, vertraulichen Einzelfälle, Kennungen, Seriennummern oder Geheimnisse.';
+    $lines[] = '- Wenn eine Anfrage solche Inhalte enthält, antworte exakt: "' . $piiReject . '"';
+    $lines[] = '- Nenne am Ende unter "**Quellen:**" die tatsächlich genutzten Quellen aus den Chunks.';
+    $lines[] = '- Erfinde keine Fakten, wenn die Quellen unklar oder unvollständig sind.';
     $lines[] = '';
     $lines[] = build_rag_block($retrievedChunks);
 

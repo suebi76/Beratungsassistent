@@ -24,7 +24,7 @@ if (!is_string($rawBody) || trim($rawBody) === '') {
 
 $payload = json_decode($rawBody, true);
 if (!is_array($payload)) {
-    json_response(['error' => 'Ungueltiges JSON.'], 400);
+    json_response(['error' => 'Ungültiges JSON.'], 400);
 }
 
 $messages = is_array($payload['messages'] ?? null) ? $payload['messages'] : [];

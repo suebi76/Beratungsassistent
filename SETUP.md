@@ -2,10 +2,10 @@
 
 ## Voraussetzungen
 
-- Apache oder ein anderer PHP-faehiger Webserver
+- Apache oder ein anderer PHP-fähiger Webserver
 - PHP 8.0+
 - PHP-Erweiterungen: `curl`, `fileinfo`, `mbstring`
-- Schreibrechte fuer:
+- Schreibrechte für:
   `config/`
   `rag/chunks/`
   `rag/uploads/`
@@ -47,13 +47,13 @@ Diese Angaben steuern:
 ### 6. Schritt 4: Dateien hochladen
 
 - Eine oder mehrere Dateien hochladen
-- In dieser ersten Version werden PDF, TXT und Markdown unterstuetzt
+- In dieser ersten Version werden PDF, TXT und Markdown unterstützt
 
 Beim Upload passieren drei Dinge:
 
 1. Die Originaldateien werden in `rag/uploads/` gespeichert.
 2. Gemini erzeugt daraus Markdown-Chunks in `rag/chunks/`.
-3. Aus den vorhandenen Chunks werden Quick Questions, Aufgabenbeispiele und Vorlagen fuer das Frontend neu erzeugt.
+3. Aus den vorhandenen Chunks werden Quick Questions, Aufgabenbeispiele und Vorlagen für das Frontend neu erzeugt.
 
 ### 7. Einsatzbereit
 
@@ -61,16 +61,16 @@ Nach dem letzten Schritt ist der Assistent unter `index.html` direkt nutzbar.
 
 ## Laufender Betrieb
 
-Im Admin-Dashboard koennen danach:
+Im Admin-Dashboard können danach:
 
 - weitere Dateien hochgeladen werden
 - das Projektprofil angepasst werden
 - Frontend-Beispiele aus der Wissensbasis neu generiert werden
-- einzelne Chunks geloescht werden
-- API-Key und Passwort geaendert werden
+- einzelne Chunks gelöscht werden
+- API-Key und Passwort geändert werden
 
 ## Hinweise zum Hosting
 
-- Der API-Key darf nie ins Frontend oder in ein oeffentliches JavaScript gelangen.
-- Die Verzeichnisse `config/` und `rag/` sollten per Serverregel gegen direkten HTTP-Zugriff geschuetzt sein.
-- Wenn der Assistent hinter einem Reverse Proxy laeuft, sollte Streaming fuer `proxy.php` nicht gepuffert werden.
+- Der API-Key darf nie ins Frontend oder in ein öffentliches JavaScript gelangen.
+- Die Verzeichnisse `config/` und `rag/` sollten per Serverregel gegen direkten HTTP-Zugriff geschützt sein.
+- Wenn der Assistent hinter einem Reverse Proxy läuft, sollte Streaming für `proxy.php` nicht gepuffert werden.

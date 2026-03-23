@@ -533,7 +533,7 @@
             if (configError) {
                 return (
                     <div className="error-box">
-                        <h2>Konfiguration nicht verfuegbar</h2>
+                        <h2>Konfiguration nicht verfügbar</h2>
                         <p>{configError}</p>
                         <p><a href="admin.php">Zur Admin-Konfiguration</a></p>
                     </div>
@@ -544,8 +544,8 @@
                 return (
                     <div className="empty-box">
                         <h2>Der Beratungsassistent ist noch nicht einsatzbereit.</h2>
-                        <p>Bevor normale Nutzer den Assistenten verwenden koennen, muessen im Admin-Bereich Passwort, API-Key, Projektprofil und Wissensbasis eingerichtet werden.</p>
-                        <p><a href="admin.php">Admin-Wizard oeffnen</a></p>
+                        <p>Bevor normale Nutzer den Assistenten verwenden können, müssen im Admin-Bereich Passwort, API-Key, Projektprofil und Wissensbasis eingerichtet werden.</p>
+                        <p><a href="admin.php">Admin-Wizard öffnen</a></p>
                     </div>
                 );
             }
@@ -557,7 +557,7 @@
                             <div className="brand-mark">BA</div>
                             <div>
                                 <h1>{config.title}</h1>
-                                <p>{config.subtitle || config.scope_summary || "Beratungsassistent mit dokumentgestuetzter Wissensbasis."}</p>
+                                <p>{config.subtitle || config.scope_summary || "Beratungsassistent mit dokumentgestützter Wissensbasis."}</p>
                             </div>
                         </div>
                         <div className="toggle">
@@ -625,7 +625,7 @@
                                     <div className="composer-foot">
                                         <div className="note">{config.safety?.pii_notice || "Bitte keine personenbezogenen Daten eingeben."}</div>
                                         <button className="send-btn" disabled={isLoading || isStreaming || !input.trim()} type="submit">
-                                            {isStreaming ? "Antwort laeuft..." : "Antwort erzeugen"}
+                                            {isStreaming ? "Antwort läuft..." : "Antwort erzeugen"}
                                         </button>
                                     </div>
                                 </form>

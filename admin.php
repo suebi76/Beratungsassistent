@@ -46,7 +46,7 @@ if (!password_is_set()) {
             $message = 'Das Admin-Passwort muss mindestens 8 Zeichen lang sein.';
             $messageType = 'error';
         } elseif ($pw1 !== $pw2) {
-            $message = 'Die Passwoerter stimmen nicht ueberein.';
+            $message = 'Die Passwörter stimmen nicht überein.';
             $messageType = 'error';
         } else {
             file_put_contents(password_file(), password_hash($pw1, PASSWORD_DEFAULT));
@@ -75,7 +75,7 @@ if (!password_is_set()) {
         $model = trim((string) ($_POST['model'] ?? DEFAULT_MODEL_NAME));
 
         if (strlen($key) < 10) {
-            $message = 'Bitte den vollstaendigen Gemini-API-Key eintragen.';
+            $message = 'Bitte den vollständigen Gemini-API-Key eintragen.';
             $messageType = 'error';
         } elseif (!save_api_config($key, $model)) {
             $message = 'API-Konfiguration konnte nicht gespeichert werden.';
@@ -119,7 +119,7 @@ if (!password_is_set()) {
 
     if ($action === 'upload_documents') {
         if (!api_key_is_configured($apiConfig)) {
-            $message = 'Bitte zuerst einen gueltigen API-Key hinterlegen.';
+            $message = 'Bitte zuerst einen gültigen API-Key hinterlegen.';
             $messageType = 'error';
         } elseif (!project_profile_is_configured($project)) {
             $message = 'Bitte zuerst Titel und Themenfeld speichern.';
@@ -129,7 +129,7 @@ if (!password_is_set()) {
             $files = array_values(array_filter($files, static fn(array $file): bool => ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE));
 
             if ($files === []) {
-                $message = 'Bitte mindestens eine Datei auswaehlen.';
+                $message = 'Bitte mindestens eine Datei auswählen.';
                 $messageType = 'error';
             } else {
                 $successCount = 0;
@@ -178,7 +178,7 @@ if (!password_is_set()) {
     if ($action === 'delete_chunk') {
         $file = basename((string) ($_POST['file'] ?? ''));
         if (!preg_match('/^[A-Za-z0-9._-]+\.md$/', $file)) {
-            $message = 'Ungueltiger Dateiname.';
+            $message = 'Ungültiger Dateiname.';
             $messageType = 'error';
         } else {
             $path = chunks_dir() . '/' . $file;
@@ -188,10 +188,10 @@ if (!password_is_set()) {
                     $project['setup']['knowledge_completed_at'] = null;
                     save_project_config($project);
                 }
-                $message = 'Chunk geloescht.';
+                $message = 'Chunk gelöscht.';
                 $messageType = 'success';
             } else {
-                $message = 'Chunk konnte nicht geloescht werden.';
+                $message = 'Chunk konnte nicht gelöscht werden.';
                 $messageType = 'error';
             }
         }
@@ -204,13 +204,13 @@ if (!password_is_set()) {
             $message = 'Das neue Passwort muss mindestens 8 Zeichen lang sein.';
             $messageType = 'error';
         } elseif ($pw1 !== $pw2) {
-            $message = 'Die Passwoerter stimmen nicht ueberein.';
+            $message = 'Die Passwörter stimmen nicht überein.';
             $messageType = 'error';
         } else {
             file_put_contents(password_file(), password_hash($pw1, PASSWORD_DEFAULT));
             session_destroy();
             session_start();
-            set_flash('success', 'Passwort geaendert. Bitte neu anmelden.');
+            set_flash('success', 'Passwort geändert. Bitte neu anmelden.');
             redirect('admin.php');
         }
     }
@@ -299,7 +299,7 @@ $steps = [
             <div class="brand">BA</div>
             <div>
                 <h1>Schritt 1 von 4</h1>
-                <p class="muted">Legen Sie beim ersten Start das Admin-Passwort fest. Danach fuehrt der Wizard durch API, Projektprofil und Wissensbasis.</p>
+                <p class="muted">Legen Sie beim ersten Start das Admin-Passwort fest. Danach führt der Wizard durch API, Projektprofil und Wissensbasis.</p>
             </div>
             <?php if ($message): ?><div class="alert <?= e($messageType) ?>"><?= e($message) ?></div><?php endif; ?>
             <form method="post" class="stack">
@@ -356,7 +356,7 @@ $steps = [
         <?php if ($wizardActive): ?>
             <div class="card">
                 <h2>Ersteinrichtung</h2>
-                <p class="muted">Der Assistent wird gefuehrt in einzelnen Schritten eingerichtet.</p>
+                <p class="muted">Der Assistent wird geführt in einzelnen Schritten eingerichtet.</p>
                 <div class="stepper">
                     <?php foreach ($steps as $key => $label): ?>
                         <?php
@@ -395,7 +395,7 @@ $steps = [
                         </div>
                         <div>
                             <label>Themenfeld</label>
-                            <textarea name="topic" required placeholder="Beschreiben Sie das fachliche Gebiet, fuer das der Assistent eingesetzt wird."><?= e((string) $project['topic']) ?></textarea>
+                            <textarea name="topic" required placeholder="Beschreiben Sie das fachliche Gebiet, für das der Assistent eingesetzt wird."><?= e((string) $project['topic']) ?></textarea>
                         </div>
                         <div>
                             <label>Zielgruppe</label>
@@ -410,8 +410,8 @@ $steps = [
                         <input type="hidden" name="action" value="upload_documents">
                         <div class="dropzone stack">
                             <div>
-                                <h3>Dateien fuer die Wissensbasis</h3>
-                                <p class="muted">Laden Sie eine oder mehrere Dateien hoch. In dieser ersten Version werden PDF, TXT und Markdown unterstuetzt. Daraus werden Chunks, Vorlagen und Beispielaufgaben erzeugt.</p>
+                                <h3>Dateien für die Wissensbasis</h3>
+                                <p class="muted">Laden Sie eine oder mehrere Dateien hoch. In dieser ersten Version werden PDF, TXT und Markdown unterstützt. Daraus werden Chunks, Vorlagen und Beispielaufgaben erzeugt.</p>
                             </div>
                             <div>
                                 <label>Dateien</label>
@@ -429,7 +429,7 @@ $steps = [
                 <div class="grid">
                     <div class="card">
                         <h2>Projektprofil</h2>
-                        <p class="muted">Diese Angaben steuern Titel, Themenrahmen, Begruessung und den Server-Prompt.</p>
+                        <p class="muted">Diese Angaben steuern Titel, Themenrahmen, Begrüßung und den Server-Prompt.</p>
                         <form method="post" class="stack">
                             <input type="hidden" name="action" value="save_project">
                             <div>
@@ -446,7 +446,7 @@ $steps = [
                             </div>
                             <div class="actions">
                                 <button class="btn btn-primary" type="submit">Projektprofil aktualisieren</button>
-                                <button class="btn btn-secondary" type="submit" formaction="project.php" formmethod="get">Oeffentliche Konfiguration ansehen</button>
+                                <button class="btn btn-secondary" type="submit" formaction="project.php" formmethod="get">Öffentliche Konfiguration ansehen</button>
                             </div>
                         </form>
                     </div>
@@ -491,7 +491,7 @@ $steps = [
                         <div class="stack">
                             <div><strong>Titel</strong><br><span class="muted"><?= e($publicConfig['title']) ?></span></div>
                             <div><strong>Untertitel</strong><br><span class="muted"><?= e($publicConfig['subtitle']) ?></span></div>
-                            <div><strong>Quick Questions</strong><br><span class="muted"><?= e((string) count($publicConfig['frontend']['quick_questions'])) ?> Eintraege</span></div>
+                            <div><strong>Quick Questions</strong><br><span class="muted"><?= e((string) count($publicConfig['frontend']['quick_questions'])) ?> Einträge</span></div>
                             <div><strong>Vorlagen</strong><br><span class="muted"><?= e((string) count($publicConfig['frontend']['templates'])) ?> Sektionen</span></div>
                             <div><strong>Chunks</strong><br><span class="muted"><?= e((string) count($chunks)) ?> Dateien im RAG-Verzeichnis</span></div>
                         </div>
@@ -513,7 +513,7 @@ $steps = [
                         </form>
 
                         <details>
-                            <summary>Admin-Passwort aendern</summary>
+                            <summary>Admin-Passwort ändern</summary>
                             <form method="post" class="stack" style="margin-top:12px">
                                 <input type="hidden" name="action" value="reset_password">
                                 <div>
@@ -543,7 +543,7 @@ $steps = [
                                 <th>Titel</th>
                                 <th>Quelle</th>
                                 <th>Tags</th>
-                                <th>Groesse</th>
+                                <th>Größe</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -558,10 +558,10 @@ $steps = [
                                 <td><?= e(implode(', ', array_slice($chunk['tags'], 0, 8))) ?></td>
                                 <td><?= e(number_format($chunk['bytes'] / 1024, 1)) ?> KB</td>
                                 <td>
-                                    <form method="post" onsubmit="return confirm('Chunk wirklich loeschen?');">
+                                    <form method="post" onsubmit="return confirm('Chunk wirklich löschen?');">
                                         <input type="hidden" name="action" value="delete_chunk">
                                         <input type="hidden" name="file" value="<?= e($chunk['file']) ?>">
-                                        <button class="btn btn-danger" type="submit">Loeschen</button>
+                                        <button class="btn btn-danger" type="submit">Löschen</button>
                                     </form>
                                 </td>
                             </tr>
