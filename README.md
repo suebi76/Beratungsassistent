@@ -63,4 +63,4 @@ S. Schwabe
 
 - Der Softwarecode in diesem Repository steht unter der MIT-Lizenz.
 - Dokumentation, Vorlagen, Beispielinhalte und sonstige nicht-codebezogene Inhalte stehen unter CC BY 4.0, sofern im Einzelfall nichts anderes vermerkt ist.
-- Die vollständigen Lizenztexte stehen in `LICENSE` und `LICENSE-CONTENT`.
+- Die vollständigen Lizenztexte stehen in `LICENSE` und `docs/content-license.md`.
