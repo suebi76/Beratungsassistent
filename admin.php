@@ -376,7 +376,7 @@ $steps = [
                         <input type="hidden" name="action" value="save_apikey">
                         <div>
                             <label>Gemini API-Key</label>
-                            <input type="text" name="apikey" required placeholder="AIza..." autocomplete="off">
+                            <input type="password" name="apikey" required placeholder="AIza..." autocomplete="off">
                         </div>
                         <div>
                             <label>Modell</label>
@@ -503,7 +503,7 @@ $steps = [
                             <input type="hidden" name="action" value="save_apikey">
                             <div>
                                 <label>Gemini API-Key</label>
-                                <input type="text" name="apikey" value="<?= e((string) ($apiConfig['api_key'] ?? '')) ?>" autocomplete="off">
+                                <input type="password" name="apikey" value="<?= e((string) ($apiConfig['api_key'] ?? '')) ?>" autocomplete="off">
                             </div>
                             <div>
                                 <label>Modell</label>

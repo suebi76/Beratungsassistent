@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-const APP_VERSION = '0.2.1';
+const APP_VERSION = '0.2.2';
 const DEFAULT_MODEL_NAME = 'gemini-2.5-flash';
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const MAX_TEXT_SOURCE_BYTES = 900000;
