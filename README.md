@@ -1,20 +1,34 @@
 # Beratungsassistent
 
-Konfigurierbarer KI-Beratungsassistent mit dateibasierter Wissensbasis, serverseitigem Gemini-Proxy und einer geführten Ersteinrichtung.
+Konfigurierbarer KI-Beratungsassistent mit Upload-basierter Wissensbasis, serverseitigem Gemini-Proxy und geführter Ersteinrichtung.
 
-Die Anwendung ist als generischer Starter aufgebaut: Beim ersten Start werden Admin-Passwort, API-Key, Titel, Themenfeld und Zielgruppe festgelegt. Anschließend werden eine oder mehrere Dateien hochgeladen, aus denen die Wissensbasis, die Quick Questions und die Vorlagen für das Frontend erzeugt werden.
+Beim ersten Start werden Admin-Passwort, Gemini-API-Key, Titel, Themenfeld und Zielgruppe festgelegt. Anschließend werden eine oder mehrere Dateien hochgeladen, aus denen die Wissensbasis sowie die UI-Beispiele für den Assistenten erzeugt werden.
 
 ## Funktionen
 
-- Geführter First-Run-Wizard in vier Schritten: Passwort, API, Profil, Dateien
-- Serverseitiger Gemini-Proxy: Kein API-Key im Browser
-- Generische Projektkonfiguration: Titel, Scope, Zielgruppe und UI-Beispiele kommen aus einer gemeinsamen Konfigurationsdatei
-- Dokumentgestützte Wissensbasis: Upload von PDF, TXT und Markdown
-- Automatische Chunk-Erzeugung per Gemini
-- Automatische Frontend-Generierung aus der Wissensbasis:
-  Quick Questions, Aufgabenbeispiele und Vorlagen werden nach dem Upload neu erzeugt
-- RAG-Antworten mit Quellenhinweis
+- Geführter Setup-Wizard für Passwort, API, Projektprofil und Wissensbasis
+- Serverseitiger Gemini-Proxy ohne API-Key im Browser
+- Dokumentgestützte Antworten mit Quellenhinweis
+- Upload von PDF, TXT und Markdown
+- Automatische Chunk-Erzeugung für die Wissensbasis
+- Automatische Generierung von Quick Questions, Aufgabenbeispielen und Vorlagen
 - Lokale Bibliotheken in `vendor/`, kein CDN im Frontend
+
+## Einrichtung
+
+1. Die Projektdateien auf einen PHP-Webserver mit `curl`, `fileinfo` und `mbstring` laden.
+2. `admin.php` im Browser öffnen.
+3. Im Wizard Admin-Passwort, Gemini-API-Key, Titel, Themenfeld und Zielgruppe festlegen.
+4. Eine oder mehrere Dateien für die Wissensbasis hochladen.
+5. Danach ist der Assistent unter `index.html` einsatzbereit.
+
+Die ausführliche Schritt-für-Schritt-Anleitung steht in `SETUP.md`.
+
+## Dateiformate
+
+- PDF
+- TXT
+- Markdown (`.md`, `.markdown`)
 
 ## Projektstruktur
 
@@ -24,84 +38,29 @@ admin.php               Wizard und Admin-Dashboard
 proxy.php               Serverseitiger Gemini-Proxy mit Retrieval
 project.php             Öffentliche Laufzeit-Konfiguration für das Frontend
 lib/app.php             Gemeinsame PHP-Helfer für Konfiguration, Upload, Chunking und Retrieval
-config/
-  config.php.example    Beispiel für API-Konfiguration
-  project.json.example  Beispiel für die Projektkonfiguration
-rag/
-  ANLEITUNG.md          Hinweise zum Chunk-Format und zur Wissensbasis
-  chunks/               Generierte Wissens-Chunks
-  uploads/              Originaldateien der Wissensbasis
+config/                 API- und Projektkonfiguration
+rag/                    Hochgeladene Dateien und generierte Wissens-Chunks
 vendor/                 Lokal eingebundene Bibliotheken
 ```
 
-## Setup
+## Technischer Hinweis
 
-1. Die Projektdateien auf einen PHP-Webserver mit `curl`, `fileinfo` und `mbstring` laden.
-2. `admin.php` im Browser aufrufen.
-3. Im Wizard:
-   Admin-Passwort setzen
-   Gemini-API-Key und Modell eintragen
-   Titel, Themenfeld und Zielgruppe festlegen
-   Eine oder mehrere Dateien hochladen
-4. Nach der Verarbeitung ist der Assistent unter `index.html` sofort einsatzbereit.
-
-Eine ausführlichere Schritt-für-Schritt-Anleitung steht in `SETUP.md`.
-
-## Wie das RAG hier funktioniert
-
-Dieses Projekt ist ein RAG-System, aber in einer bewusst einfachen ersten Ausbaustufe:
-
-- Die hochgeladenen Dokumente werden in fachliche Markdown-Chunks zerlegt.
-- Bei jeder Nutzerfrage werden diese Chunks serverseitig erneut durchsucht.
-- Die besten Treffer werden an den System-Prompt angehängt.
-- Das Modell generiert die Antwort auf Basis der Frage plus der abgerufenen Chunks.
-
-Wichtig für die Einordnung:
-
-- Ja, das ist Retrieval-Augmented Generation, weil vor der Antwort relevante Wissensfragmente aus einer externen Wissensbasis geholt und in die Generierung eingebettet werden.
-- Nein, es ist kein Vektor-RAG mit Embeddings oder einer Vector Database.
-- Die Retrieval-Stufe ist aktuell lexikalisch:
-  Titel, Tags, Quelle und Chunk-Text werden per gewichteter Keyword-Suche bewertet.
-- Die Chunk-Erzeugung selbst ist kein Retrieval, sondern ein vorgeschalteter Ingest/Preprocessing-Schritt.
-
-## Technische Bewertung der bisherigen 1:1-Version
-
-Die bestehende 1:1-Version unter `KI Chatbot-1zu1` war bereits ein funktionierendes RAG-System im engeren Sinn:
-
-- Es gab persistente Wissens-Chunks außerhalb des Modells.
-- Vor jeder Antwort wurden passende Chunks aus dem Dateisystem gesucht.
-- Diese Chunks wurden an den Prompt angehängt.
-
-Die Grenzen der alten Version lagen nicht im "Ob", sondern im "Wie":
-
-- Das Retrieval war ebenfalls nur keyword-basiert.
-- Es gab keine Embeddings, kein Re-Ranking und keine semantische Vektor-Suche.
-- Die fachlichen Prompts und Frontend-Beispiele waren hart auf die 1:1-Ausstattung zugeschnitten.
-
-Die neue Version verallgemeinert genau diese Architektur.
-
-## Dateitypen in dieser ersten Version
-
-- PDF
-- TXT
-- Markdown (`.md`, `.markdown`)
-
-Weitere Formate können später über dieselbe Ingest-Pipeline ergänzt werden.
+Der Assistent nutzt eine dokumentbasierte Wissensbasis: Hochgeladene Inhalte werden in Chunks aufgeteilt, serverseitig durchsucht und als Kontext für die Antwortgenerierung verwendet.
 
 ## Sicherheit und Betrieb
 
 - API-Key bleibt serverseitig in `config/config.php`
 - Admin-Passwort wird gehasht in `rag/.admin_password` gespeichert
-- Wissensdateien und Chunks liegen außerhalb des normalen Frontend-Zugriffs und werden nur über PHP verwendet
-- Der serverseitige Prompt wird nicht aus dem Frontend übernommen, sondern aus der Projektkonfiguration erzeugt
+- Wissensdateien und Chunks werden nur serverseitig verwendet
+- Der System-Prompt wird nicht aus dem Frontend übernommen
 
 ## Kontakt
 
 S. Schwabe  
-s.schwabe@nibis.de
+`s.schwabe@nibis.de`
 
 ## Lizenz
 
 - Der Softwarecode in diesem Repository steht unter der MIT-Lizenz.
 - Dokumentation, Vorlagen, Beispielinhalte und sonstige nicht-codebezogene Inhalte stehen unter CC BY 4.0, sofern im Einzelfall nichts anderes vermerkt ist.
-- Die vollständigen Lizenztexte stehen in LICENSE und LICENSE-CONTENT.
+- Die vollständigen Lizenztexte stehen in `LICENSE` und `LICENSE-CONTENT`.
