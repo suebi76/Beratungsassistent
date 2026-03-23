@@ -4,388 +4,86 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Konfigurierbarer Beratungsassistent mit dateibasierter Wissensbasis und RAG.">
+    <meta name="theme-color" content="#0a192f">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2720%27 fill=%27%230a192f%27/%3E%3Ctext x=%2732%27 y=%2740%27 font-size=%2726%27 font-family=%27Segoe UI, Arial, sans-serif%27 font-weight=%27800%27 text-anchor=%27middle%27 fill=%27%23e50046%27%3EBA%3C/text%3E%3C/svg%3E">
     <title>Beratungsassistent</title>
+    <script src="vendor/tailwind.min.js"></script>
     <script src="vendor/react.production.min.js"></script>
     <script src="vendor/react-dom.production.min.js"></script>
     <script src="vendor/babel.min.js"></script>
     <script src="vendor/marked.min.js"></script>
+    <script src="vendor/jspdf.umd.min.js"></script>
     <style>
-        :root {
-            --bg: #f7f5ef;
-            --surface: rgba(255,255,255,0.88);
-            --surface-strong: #ffffff;
-            --border: rgba(24, 33, 43, 0.08);
-            --text: #18212b;
-            --muted: #68717c;
-            --brand-a: #1f5eff;
-            --brand-b: #f15b2a;
-            --accent-soft: rgba(31, 94, 255, 0.12);
-            --warning: #9a3412;
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+
+        .md h1, .md h2, .md h3 { font-weight: 700; margin-top: 1em; margin-bottom: 0.4em; color: #0a192f; }
+        .md h1 { font-size: 1.15em; }
+        .md h2 { font-size: 1.05em; }
+        .md h3 { font-size: 0.97em; }
+        .md p  { margin-bottom: 0.65em; line-height: 1.65; }
+        .md p:last-child { margin-bottom: 0; }
+        .md ul { list-style-type: disc; padding-left: 1.4em; margin-bottom: 0.65em; }
+        .md ol { list-style-type: decimal; padding-left: 1.4em; margin-bottom: 0.65em; }
+        .md li { margin-bottom: 0.25em; line-height: 1.55; }
+        .md strong { font-weight: 700; color: #0a192f; }
+        .md em { font-style: italic; }
+        .md code { background: #f1f5f9; border-radius: 4px; padding: 0.1em 0.4em; font-size: 0.85em; font-family: 'Menlo', 'Consolas', monospace; color: #e50046; }
+        .md pre  { background: #0a192f; color: #e2e8f0; border-radius: 10px; padding: 1em; overflow-x: auto; margin-bottom: 0.75em; font-size: 0.82em; }
+        .md pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+        .md blockquote { border-left: 3px solid #e50046; padding-left: 0.85em; color: #64748b; margin: 0.65em 0; font-style: italic; }
+        .md hr { border: none; border-top: 1px solid #e2e8f0; margin: 0.75em 0; }
+        .md table { border-collapse: collapse; width: 100%; margin-bottom: 0.75em; font-size: 0.9em; }
+        .md th, .md td { border: 1px solid #e2e8f0; padding: 0.4em 0.6em; text-align: left; }
+        .md th { background: #f1f5f9; font-weight: 700; color: #0a192f; }
+
+        .streaming-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: #e50046;
+            margin-left: 2px;
+            vertical-align: text-bottom;
+            animation: blink 0.7s step-end infinite;
         }
-
-        * { box-sizing: border-box; }
-        html, body { height: 100%; }
-        body {
-            margin: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            color: var(--text);
-            background:
-                radial-gradient(circle at top left, rgba(31, 94, 255, 0.12), transparent 32%),
-                radial-gradient(circle at top right, rgba(241, 91, 42, 0.12), transparent 26%),
-                linear-gradient(180deg, #fbfaf7 0%, #eef2f5 100%);
-        }
-
-        button, input, textarea { font: inherit; }
-
-        .app-shell {
-            min-height: 100%;
-            display: grid;
-            grid-template-rows: auto 1fr;
-        }
-
-        .app-header {
-            padding: 24px 20px 16px;
-            display: flex;
-            justify-content: space-between;
-            gap: 16px;
-            align-items: flex-start;
-        }
-
-        .brand {
-            display: flex;
-            gap: 14px;
-            align-items: center;
-        }
-
-        .brand-mark {
-            width: 56px;
-            height: 56px;
-            border-radius: 18px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
-            color: white;
-            font-weight: 800;
-            letter-spacing: 0.06em;
-            box-shadow: 0 18px 40px rgba(24, 33, 43, 0.15);
-        }
-
-        .brand h1 {
-            margin: 0;
-            font-size: clamp(1.25rem, 3vw, 2rem);
-            line-height: 1.05;
-        }
-
-        .brand p {
-            margin: 6px 0 0;
-            color: var(--muted);
-            max-width: 720px;
-        }
-
-        .toggle {
-            display: inline-flex;
-            gap: 8px;
-            padding: 6px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.72);
-            border: 1px solid var(--border);
-            box-shadow: 0 10px 28px rgba(24,33,43,0.08);
-        }
-
-        .toggle button {
-            border: none;
-            background: transparent;
-            border-radius: 999px;
-            padding: 10px 14px;
-            cursor: pointer;
-            color: var(--muted);
-            font-weight: 700;
-        }
-
-        .toggle button.active {
-            background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
-            color: white;
-        }
-
-        .layout {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) 360px;
-            gap: 20px;
-            padding: 0 20px 24px;
-            min-height: 0;
-        }
-
-        .panel, .chat-shell, .composer {
-            border: 1px solid var(--border);
-            background: var(--surface);
-            backdrop-filter: blur(14px);
-            box-shadow: 0 20px 50px rgba(24,33,43,0.07);
-        }
-
-        .panel {
-            border-radius: 28px;
-            padding: 22px;
-            overflow: auto;
-        }
-
-        .panel h2, .panel h3 {
-            margin: 0 0 10px;
-        }
-
-        .panel h2 {
-            font-size: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .panel p, .panel li {
-            color: var(--muted);
-            line-height: 1.55;
-        }
-
-        .panel ul {
-            margin: 0;
-            padding-left: 18px;
-        }
-
-        .info-block {
-            padding: 16px;
-            border-radius: 20px;
-            background: rgba(255,255,255,0.72);
-            border: 1px solid rgba(24,33,43,0.06);
-            margin-bottom: 16px;
-        }
-
-        .button-list {
-            display: grid;
-            gap: 10px;
-        }
-
-        .option-btn {
-            appearance: none;
-            width: 100%;
-            text-align: left;
-            border: 1px solid rgba(24,33,43,0.08);
-            background: white;
-            border-radius: 18px;
-            padding: 12px 14px;
-            cursor: pointer;
-            color: var(--text);
-            transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease;
-        }
-
-        .option-btn:hover {
-            transform: translateY(-1px);
-            border-color: rgba(31, 94, 255, 0.3);
-            box-shadow: 0 14px 28px rgba(24,33,43,0.08);
-        }
-
-        .option-btn small {
-            display: block;
-            margin-top: 4px;
-            color: var(--muted);
-        }
-
-        .chat-shell {
-            border-radius: 32px;
-            display: grid;
-            grid-template-rows: 1fr auto;
-            min-height: 0;
-            overflow: hidden;
-        }
-
-        .chat-scroll {
-            overflow: auto;
-            padding: 24px;
-            display: grid;
-            gap: 18px;
-        }
-
-        .welcome {
-            align-self: center;
-            justify-self: center;
-            width: min(100%, 760px);
-            padding: 28px;
-            border-radius: 28px;
-            background: rgba(255,255,255,0.86);
-            border: 1px solid rgba(24,33,43,0.08);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
-        }
-
-        .welcome h2 { margin: 0 0 10px; font-size: 1.7rem; }
-        .welcome p { margin: 0 0 14px; color: var(--muted); line-height: 1.6; }
-
-        .pill-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 18px;
-        }
-
-        .pill {
-            padding: 8px 12px;
-            border-radius: 999px;
-            background: var(--accent-soft);
-            color: var(--text);
-            font-size: 0.92rem;
-            border: 1px solid rgba(31, 94, 255, 0.12);
-        }
-
-        .message {
-            display: grid;
-            gap: 8px;
-        }
-
-        .message.user { justify-items: end; }
-        .message.assistant { justify-items: start; }
-
-        .bubble {
-            max-width: min(84%, 820px);
-            padding: 16px 18px;
-            border-radius: 24px;
-            line-height: 1.6;
-            box-shadow: 0 16px 34px rgba(24,33,43,0.06);
-        }
-
-        .message.user .bubble {
-            background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
-            color: white;
-            border-bottom-right-radius: 8px;
-        }
-
-        .message.assistant .bubble {
-            background: white;
-            border: 1px solid rgba(24,33,43,0.08);
-            border-bottom-left-radius: 8px;
-        }
-
-        .message-meta {
-            font-size: 12px;
-            color: var(--muted);
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .message-meta button {
-            border: none;
-            background: transparent;
-            color: var(--brand-a);
-            cursor: pointer;
-            padding: 0;
-            font-weight: 700;
-        }
-
-        .md h1, .md h2, .md h3 { color: var(--text); margin: 1em 0 .4em; line-height: 1.2; }
-        .md p { margin: 0 0 .8em; }
-        .md ul, .md ol { padding-left: 1.3em; margin: 0 0 .9em; }
-        .md code { background: #f3f6fb; border-radius: 8px; padding: 0.1em 0.35em; }
-        .md pre { background: #18212b; color: #e8edf3; border-radius: 18px; padding: 14px; overflow-x: auto; }
-        .md blockquote { margin: 0 0 1em; padding-left: 14px; border-left: 4px solid rgba(31,94,255,0.35); color: var(--muted); }
-
-        .composer {
-            border-top: 1px solid var(--border);
-            background: rgba(255,255,255,0.92);
-            padding: 16px;
-        }
-
-        .composer form {
-            display: grid;
-            gap: 10px;
-        }
-
-        .composer textarea {
-            width: 100%;
-            min-height: 120px;
-            resize: vertical;
-            border-radius: 20px;
-            border: 1px solid rgba(24,33,43,0.12);
-            padding: 14px 16px;
-            color: var(--text);
-            background: white;
-        }
-
-        .composer textarea:focus {
-            outline: none;
-            border-color: rgba(31,94,255,0.45);
-            box-shadow: 0 0 0 4px rgba(31,94,255,0.12);
-        }
-
-        .composer-foot {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .note {
-            color: var(--warning);
-            font-size: .92rem;
-            line-height: 1.5;
-        }
-
-        .send-btn {
-            appearance: none;
-            border: none;
-            border-radius: 16px;
-            padding: 12px 18px;
-            font-weight: 800;
-            cursor: pointer;
-            color: white;
-            background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
-            box-shadow: 0 18px 30px rgba(24,33,43,0.12);
-        }
-
-        .send-btn:disabled {
-            opacity: .45;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-
-        .error-box, .empty-box {
-            margin: 20px;
-            padding: 22px;
-            border-radius: 24px;
-            background: rgba(255,255,255,0.92);
-            border: 1px solid rgba(24,33,43,0.08);
-        }
-
-        .error-box a, .empty-box a {
-            color: var(--brand-a);
-            font-weight: 700;
-            text-decoration: none;
-        }
-
-        .loading {
-            padding: 48px 20px;
-            text-align: center;
-            color: var(--muted);
-        }
-
-        @media (max-width: 980px) {
-            .layout { grid-template-columns: 1fr; }
-            .panel { order: 2; display: none; }
-            .panel.visible { display: block; }
-            .chat-shell { min-height: 68vh; }
-        }
-
-        @media (max-width: 640px) {
-            .app-header { padding: 18px 14px 10px; flex-direction: column; }
-            .layout { padding: 0 14px 18px; }
-            .chat-scroll { padding: 18px 14px; }
-            .composer { padding: 12px; }
-            .bubble { max-width: 92%; }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0; }
         }
     </style>
 </head>
-<body>
+<body class="bg-slate-100">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useEffect, useRef, useState } = React;
         marked.setOptions({ breaks: true, gfm: true });
+
+        const Icon = ({ name, className = "w-5 h-5" }) => {
+            const icons = {
+                bot:        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>,
+                user:       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+                send:       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>,
+                settings:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
+                message:    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+                chevronRight: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m9 18 6-6-6-6"/></svg>,
+                book:       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6.5 18H20"/></svg>,
+                layers:     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.1 6.27a2 2 0 0 0 0 3.66l9.07 4.09a2 2 0 0 0 1.66 0l9.07-4.09a2 2 0 0 0 0-3.66Z"/><path d="m2.1 11.74 9.07 4.09a2 2 0 0 0 1.66 0l9.07-4.09"/><path d="m2.1 16.05 9.07 4.09a2 2 0 0 0 1.66 0l9.07-4.09"/></svg>,
+                wrench:     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a2 2 0 0 1-2.73-2.73z"/><path d="m10.3 10.3 1.6 1.6"/><path d="m11.1 14.5 1.6 1.6"/><path d="M3.1 3.1c-2.3 2.3-2.3 6 0 8.3l6.5 6.5c2.3 2.3 6 2.3 8.3 0"/><path d="M17.5 17.5l2.4 2.4"/></svg>,
+                shield:     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>,
+                refresh:    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>,
+                info:       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>,
+                alert:      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>,
+                clipboard:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>,
+                checkmark:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"/></svg>,
+                fileDown:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg>,
+                zap:        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>,
+                building:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>,
+                toggle:     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="20" height="12" x="2" y="6" rx="6" ry="6"/><circle cx="16" cy="12" r="2"/></svg>,
+                toggleOff:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="20" height="12" x="2" y="6" rx="6" ry="6"/><circle cx="8" cy="12" r="2"/></svg>,
+                plus:       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            };
+            return icons[name] || null;
+        };
 
         function App() {
             const [config, setConfig] = useState(null);
@@ -395,21 +93,23 @@
             const [input, setInput] = useState("");
             const [isLoading, setIsLoading] = useState(false);
             const [isStreaming, setIsStreaming] = useState(false);
-            const [view, setView] = useState("chat");
+            const [currentView, setCurrentView] = useState("chat");
             const [copiedIndex, setCopiedIndex] = useState(null);
+            const [error, setError] = useState(null);
+            const [showPrivacy, setShowPrivacy] = useState(false);
+            const [showDSB, setShowDSB] = useState(false);
+            const [isSchifT, setIsSchifT] = useState(false);
             const scrollRef = useRef(null);
             const autoScroll = useRef(true);
 
             useEffect(() => {
                 fetch("project.php")
                     .then((response) => {
-                        if (!response.ok) {
-                            throw new Error("Konfiguration konnte nicht geladen werden.");
-                        }
+                        if (!response.ok) throw new Error("Konfiguration konnte nicht geladen werden.");
                         return response.json();
                     })
                     .then((data) => setConfig(data))
-                    .catch((error) => setConfigError(error.message || "Konfiguration konnte nicht geladen werden."))
+                    .catch((err) => setConfigError(err.message || "Konfiguration konnte nicht geladen werden."))
                     .finally(() => setLoadingConfig(false));
             }, []);
 
@@ -417,7 +117,7 @@
                 if (autoScroll.current && scrollRef.current) {
                     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
                 }
-            }, [messages, isLoading, isStreaming]);
+            }, [messages, isLoading]);
 
             const handleScroll = () => {
                 const el = scrollRef.current;
@@ -427,256 +127,584 @@
 
             const quickQuestions = config?.frontend?.quick_questions || [];
             const templates = config?.frontend?.templates || [];
-            const taskExamples = config?.frontend?.task_examples || [];
-            const scopeBullets = config?.scope_bullets || [];
+
+            const clearChat = () => { setMessages([]); setInput(""); setError(null); autoScroll.current = true; };
+
+            const downloadAsPdf = (text, filenameBase) => {
+                try {
+                    const { jsPDF } = window.jspdf;
+                    if (!jsPDF || !text) return;
+                    const doc = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+                    const ML = 20, MR = 20, MT = 28, MB = 22;
+                    const PW = 210, PH = 297;
+                    const CW = PW - ML - MR;
+                    let y = MT;
+                    const newPage = () => { doc.addPage(); y = MT; };
+                    const checkY = (h) => { if (y + h > PH - MB) newPage(); };
+                    const strip = (s) => s.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/`(.*?)`/g, '$1').replace(/~~(.*?)~~/g, '$1');
+                    const writeLine = (content, size, style, rgb, indent = 0) => {
+                        doc.setFontSize(size); doc.setFont('helvetica', style); doc.setTextColor(...rgb);
+                        const wrapped = doc.splitTextToSize(content, CW - indent);
+                        wrapped.forEach((l, i) => { checkY(size * 0.4); doc.text(l, ML + indent + (i > 0 ? 4 : 0), y); y += size * 0.38; });
+                    };
+                    doc.setFillColor(229, 0, 70);
+                    doc.rect(0, 0, PW, 14, 'F');
+                    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
+                    doc.text((config?.title || 'Beratungsassistent') + '  \u00b7  Antwort', ML, 9.5);
+                    const lines = text.split('\n');
+                    let inCode = false;
+                    lines.forEach((raw) => {
+                        if (raw.startsWith('```')) { inCode = !inCode; y += 2; return; }
+                        if (inCode) { writeLine(raw, 9, 'normal', [80, 80, 80], 4); return; }
+                        const trimmed = raw.trim();
+                        if (!trimmed) { y += 3; return; }
+                        if (trimmed.startsWith('### ')) { y += 2; checkY(14); writeLine(strip(trimmed.slice(4)), 12, 'bold', [10, 25, 47]); y += 1; return; }
+                        if (trimmed.startsWith('## ')) { y += 3; checkY(16); writeLine(strip(trimmed.slice(3)), 14, 'bold', [10, 25, 47]); y += 2; return; }
+                        if (trimmed.startsWith('# ')) { y += 4; checkY(18); writeLine(strip(trimmed.slice(2)), 16, 'bold', [10, 25, 47]); y += 3; return; }
+                        if (trimmed.startsWith('> ')) { doc.setDrawColor(229, 0, 70); doc.setLineWidth(0.8); checkY(8); doc.line(ML, y - 3, ML, y + 3); writeLine(strip(trimmed.slice(2)), 10, 'italic', [100, 116, 139], 4); return; }
+                        if (/^[-*] /.test(trimmed)) { checkY(7); doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.setTextColor(229, 0, 70); doc.text('\u2022', ML + 1, y); writeLine(strip(trimmed.slice(2)), 11, 'normal', [30, 30, 30], 6); return; }
+                        const numMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
+                        if (numMatch) { checkY(7); doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(229, 0, 70); doc.text(numMatch[1] + '.', ML + 1, y); writeLine(strip(numMatch[2]), 11, 'normal', [30, 30, 30], 8); return; }
+                        if (/^---+$/.test(trimmed)) { checkY(6); y += 2; doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.3); doc.line(ML, y, PW - MR, y); y += 4; return; }
+                        const hasBold = /\*\*/.test(trimmed);
+                        writeLine(strip(trimmed), 11, hasBold ? 'bold' : 'normal', [30, 30, 30]); y += 1;
+                    });
+                    const total = doc.getNumberOfPages();
+                    for (let p = 1; p <= total; p++) {
+                        doc.setPage(p); doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(148, 163, 184);
+                        doc.text((config?.title || 'Beratungsassistent') + '  \u00b7  RAG-gestuetzte Antwort', ML, PH - 8);
+                        doc.text(p + ' / ' + total, PW - MR, PH - 8, { align: 'right' });
+                    }
+                    const safeName = String(filenameBase || "antwort").toLowerCase().replace(/[^a-z0-9äöüß]+/gi, "-").replace(/^-+|-+$/g, "") || "antwort";
+                    doc.save(safeName + ".pdf");
+                } catch (e) {}
+            };
 
             const sendQuery = async (queryText) => {
-                const trimmed = queryText.trim();
-                if (!trimmed || isLoading || isStreaming || !config?.configured) {
-                    return;
-                }
-
+                const trimmed = String(queryText || "").trim();
+                if (!trimmed || isLoading || isStreaming || !config?.configured) return;
                 autoScroll.current = true;
+                setError(null);
                 const history = messages.slice();
-                const nextMessages = [...history, { role: "user", text: trimmed }, { role: "assistant", text: "" }];
-                setMessages(nextMessages);
-                setInput("");
-                setIsLoading(true);
-                setIsStreaming(true);
-
+                setMessages([...history, { role: "user", text: trimmed }, { role: "assistant", text: "" }]);
+                setInput(""); setIsLoading(true); setIsStreaming(true);
                 try {
                     const response = await fetch("proxy.php", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            messages: history.map((entry) => ({
-                                role: entry.role,
-                                text: entry.text,
-                            })),
-                            query: trimmed,
-                        }),
+                        body: JSON.stringify({ messages: history.map((entry) => ({ role: entry.role, text: entry.text })), query: trimmed }),
                     });
-
-                    if (!response.ok || !response.body) {
-                        throw new Error("Antwort vom Server fehlgeschlagen.");
-                    }
-
-                    const reader = response.body.getReader();
-                    const decoder = new TextDecoder();
-                    let buffer = "";
-                    let fullText = "";
-
+                    if (!response.ok || !response.body) throw new Error("Antwort vom Server fehlgeschlagen.");
+                    const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = ""; let fullText = "";
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) break;
-
                         buffer += decoder.decode(value, { stream: true });
                         const lines = buffer.split("\n");
                         buffer = lines.pop() || "";
-
                         for (const line of lines) {
                             if (!line.startsWith("data: ")) continue;
                             const payload = line.slice(6).trim();
                             if (!payload || payload === "[DONE]") continue;
-
-                            const data = JSON.parse(payload);
-                            if (data.error) {
-                                throw new Error(data.error);
-                            }
-
-                            const chunk = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                            if (!chunk) continue;
-                            fullText += chunk;
-                            setMessages((current) => {
-                                const updated = current.slice();
-                                updated[updated.length - 1] = { role: "assistant", text: fullText };
-                                return updated;
-                            });
+                            try {
+                                const data = JSON.parse(payload);
+                                if (data.error) throw new Error(data.error);
+                                const chunk = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                                if (!chunk) continue;
+                                fullText += chunk;
+                                setMessages((current) => {
+                                    const updated = current.slice();
+                                    updated[updated.length - 1] = { role: "assistant", text: fullText };
+                                    return updated;
+                                });
+                            } catch (e) {}
                         }
                     }
-
                     if (!fullText) {
-                        throw new Error("Keine Antwort erhalten.");
+                        setMessages((current) => current.slice(0, -1));
+                        setError("Keine Antwort erhalten. Bitte erneut versuchen.");
                     }
-                } catch (error) {
-                    setMessages((current) => {
-                        const updated = current.slice(0, -1);
-                        updated.push({
-                            role: "assistant",
-                            text: "## Fehler\n\nDie Antwort konnte nicht erzeugt werden.\n\n**Hinweis:** " + (error.message || "Unbekannter Fehler."),
-                        });
-                        return updated;
-                    });
+                } catch (err) {
+                    setMessages((current) => current.slice(0, -1));
+                    setError("Verbindungsfehler: " + (err.message || "Bitte versuchen Sie es spaeter erneut."));
                 } finally {
-                    setIsLoading(false);
-                    setIsStreaming(false);
+                    setIsLoading(false); setIsStreaming(false);
                 }
             };
 
-            const submit = (event) => {
-                event.preventDefault();
+            const handleSendMessage = (e) => {
+                e?.preventDefault();
+                if (!input.trim() || isLoading || isStreaming) return;
                 sendQuery(input);
             };
 
-            const copyMessage = async (text, index) => {
-                try {
-                    await navigator.clipboard.writeText(text);
-                    setCopiedIndex(index);
-                    window.setTimeout(() => setCopiedIndex(null), 1800);
-                } catch (error) {}
+            const applyTemplate = (prompt) => {
+                setInput(prompt);
+                setCurrentView("chat");
             };
 
+            const copyMessage = (text, idx) => {
+                navigator.clipboard.writeText(text).then(() => {
+                    setCopiedIndex(idx);
+                    setTimeout(() => setCopiedIndex(null), 2000);
+                }).catch(() => {});
+            };
+
+            /* ── Privacy Modal ──────────────────────────────────────────── */
+            const PrivacyModal = () => (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={() => setShowPrivacy(false)}>
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <div className="sticky top-0 bg-white rounded-t-3xl border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-[#e50046] p-2 rounded-xl text-white"><Icon name="shield" className="w-5 h-5" /></div>
+                                <h2 className="font-bold text-[#0a192f] text-lg">Datenschutzhinweis</h2>
+                            </div>
+                            <button onClick={() => setShowPrivacy(false)} aria-label="Schliessen"
+                                className="text-slate-400 hover:text-slate-700 text-xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-all">{'\u2715'}</button>
+                        </div>
+                        <div className="px-6 py-5 space-y-5 text-sm text-slate-700">
+                            <section>
+                                <h3 className="font-bold text-[#0a192f] mb-1">Was macht diese App?</h3>
+                                <p>Der <strong>{config?.title || "Beratungsassistent"}</strong> ist ein konfigurierbarer KI-Assistent mit dateibasierter Wissensbasis (RAG). Die KI-Antworten werden von <strong>Google Gemini</strong> auf Basis einer Wissensdatenbank generiert. Anfragen mit personenbezogenen Daten werden aktiv abgewiesen.</p>
+                            </section>
+                            <section>
+                                <h3 className="font-bold text-[#0a192f] mb-1">Welche Daten werden verarbeitet?</h3>
+                                <ul className="list-disc list-inside space-y-1">
+                                    <li>Die <strong>Texteingaben</strong>, die Sie in das Chat-Feld tippen</li>
+                                    <li>Der <strong>Chatverlauf der laufenden Sitzung</strong> (wird als Kontext an die KI uebergeben)</li>
+                                </ul>
+                                <p className="mt-2 text-slate-500 text-xs bg-amber-50 border border-amber-200 rounded-xl p-3">
+                                    <strong>Wichtig:</strong> Bitte geben Sie <strong>keine personenbezogenen Daten</strong> ein. Die KI ist angewiesen, solche Eingaben zu erkennen und abzulehnen.
+                                </p>
+                            </section>
+                            <section>
+                                <h3 className="font-bold text-[#0a192f] mb-1">Wohin gehen meine Eingaben?</h3>
+                                <p>Ihre Texteingabe wird verschluesselt an den <strong>Webserver</strong> uebertragen. Dort nimmt <code>proxy.php</code> die Anfrage entgegen und leitet sie an die <strong>Google Gemini API</strong> weiter. Der API-Schluessel ist serverseitig gespeichert und per Zugriffsregel gesperrt.</p>
+                                <p className="mt-1">Google LLC ist ein US-amerikanisches Unternehmen. Die Uebertragung erfolgt auf Grundlage der EU-Standardvertragsklauseln (Art. 46 DSGVO).</p>
+                            </section>
+                            <section>
+                                <h3 className="font-bold text-[#0a192f] mb-1">Werden Daten gespeichert?</h3>
+                                <p><strong>Nein.</strong> Weder der Webserver noch diese Anwendung speichern Ihre Eingaben dauerhaft. Der Verlauf existiert nur im Arbeitsspeicher Ihres Browsers. Es werden <strong>keine Cookies</strong> gesetzt und <strong>kein Tracking</strong> durchgefuehrt.</p>
+                            </section>
+                            <section>
+                                <h3 className="font-bold text-[#0a192f] mb-1">Externe Verbindungen</h3>
+                                <p>Alle Skripte sind lokal auf dem Server gespeichert. Beim Laden der Seite wird <strong>keine Verbindung zu externen Diensten</strong> hergestellt.</p>
+                            </section>
+                        </div>
+                        <div className="px-6 pb-5">
+                            <button onClick={() => setShowPrivacy(false)}
+                                className="w-full py-3 bg-[#0a192f] text-white rounded-2xl font-bold hover:opacity-90 transition-all">
+                                Verstanden
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            /* ── DSB Modal ──────────────────────────────────────────────── */
+            const DSBModal = () => (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={() => setShowDSB(false)}>
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <div className="sticky top-0 bg-white rounded-t-3xl border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-[#0a192f] p-2 rounded-xl text-white"><Icon name="book" className="w-5 h-5" /></div>
+                                <div>
+                                    <h2 className="font-bold text-[#0a192f] text-lg leading-none">Technische Datenschutzdokumentation</h2>
+                                    <p className="text-xs text-slate-400 mt-0.5">Fuer Datenschutzbeauftragte</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowDSB(false)} aria-label="Schliessen"
+                                className="text-slate-400 hover:text-slate-700 text-xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-all">{'\u2715'}</button>
+                        </div>
+                        <div className="px-6 py-5 space-y-6 text-sm text-slate-700">
+                            <section className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                                <h3 className="font-bold text-[#0a192f] text-base mb-2">1. Zweck der Verarbeitung</h3>
+                                <p>Die Anwendung dient als <strong>konfigurierbarer Beratungsassistent</strong> mit dateibasierter Wissensbasis. Eine Verarbeitung personenbezogener Daten ist durch die System-Anweisung explizit untersagt.</p>
+                            </section>
+                            <section>
+                                <h3 className="font-bold text-[#0a192f] text-base mb-2">2. Datenfluss</h3>
+                                <div className="bg-[#0a192f] text-slate-300 rounded-xl p-4 font-mono text-xs space-y-1">
+                                    <p>Browser (Nutzer)</p>
+                                    <p className="pl-4 text-[#e50046]">{'\u2192'} HTTPS POST {'\u2192'} proxy.php (Webserver)</p>
+                                    <p className="pl-8 text-slate-500">laedt API-Key aus config/config.php (per .htaccess gesperrt)</p>
+                                    <p className="pl-8 text-slate-500">durchsucht rag/chunks/*.md nach relevanten Wissens-Chunks</p>
+                                    <p className="pl-4 text-[#e50046]">{'\u2192'} HTTPS POST {'\u2192'} generativelanguage.googleapis.com</p>
+                                    <p className="pl-4 text-[#e50046]">{'\u2190'} SSE-Stream zurueck an Browser</p>
+                                    <p className="pl-4 text-slate-500">{'\u2717'} Kein Logging, keine Persistenz</p>
+                                </div>
+                            </section>
+                            <section>
+                                <h3 className="font-bold text-[#0a192f] text-base mb-2">3. Technisch-organisatorische Massnahmen</h3>
+                                <div className="space-y-2">
+                                    {[
+                                        ["Transportverschluesselung", "TLS/HTTPS fuer alle Datenuebertragungen"],
+                                        ["API-Key-Schutz", "Schluessel in config/config.php, per .htaccess gesperrt"],
+                                        ["RAG-Wissensdatenbank", "Antworten basieren auf geprueften Wissens-Chunks"],
+                                        ["Keine Datenpersistenz", "Keine Datenbank, keine Logdateien"],
+                                        ["Keine Tracking-Technologien", "Keine Cookies, kein Analytics"],
+                                        ["Lokale Bibliotheken", "Alle JS-Abhaengigkeiten lokal gehostet"],
+                                        ["PII-Ablehnung", "System-Prompt verbietet Verarbeitung personenbezogener Daten"],
+                                    ].map(([title, desc]) => (
+                                        <div key={title} className="flex gap-3 bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                            <div className="text-[#e50046] mt-0.5 shrink-0"><Icon name="shield" className="w-4 h-4" /></div>
+                                            <div><span className="font-bold text-slate-800">{title}:</span> <span className="text-slate-600">{desc}</span></div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                            <section>
+                                <h3 className="font-bold text-[#0a192f] text-base mb-2">4. Speicherdauer</h3>
+                                <ul className="list-disc list-inside space-y-1">
+                                    <li><strong>Serverseitig:</strong> Keine Speicherung (Proxy-Betrieb).</li>
+                                    <li><strong>Clientseitig:</strong> Chatverlauf im React-State. Kein localStorage, keine Cookies.</li>
+                                    <li><strong>Google Gemini:</strong> API-Nutzung ohne Opt-in zur Modellverbesserung.</li>
+                                </ul>
+                            </section>
+                            <section className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                                <h3 className="font-bold text-amber-800 text-base mb-1">Empfehlung fuer den dienstlichen Einsatz</h3>
+                                <p className="text-amber-700 text-xs">Vor dem Einsatz sollte der zustaendige <strong>Datenschutzbeauftragte</strong> informiert werden. Pruefung einer DSFA nach Art. 35 DSGVO empfohlen.</p>
+                            </section>
+                        </div>
+                        <div className="px-6 pb-5">
+                            <button onClick={() => setShowDSB(false)}
+                                className="w-full py-3 bg-[#0a192f] text-white rounded-2xl font-bold hover:opacity-90 transition-all">
+                                Schliessen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            /* ── Loading state ──────────────────────────────────────────── */
             if (loadingConfig) {
-                return <div className="loading">Konfiguration wird geladen...</div>;
+                return (
+                    <div className="flex items-center justify-center h-screen bg-slate-100">
+                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 max-w-md w-full text-center">
+                            <Icon name="refresh" className="w-8 h-8 text-[#e50046] animate-spin mx-auto mb-4" />
+                            <h2 className="font-bold text-[#0a192f] text-lg mb-2">Konfiguration wird geladen</h2>
+                            <p className="text-sm text-slate-500">Profil, Wissensbasis und Frontend-Konfiguration werden geladen.</p>
+                        </div>
+                    </div>
+                );
             }
 
             if (configError) {
                 return (
-                    <div className="error-box">
-                        <h2>Konfiguration nicht verfügbar</h2>
-                        <p>{configError}</p>
-                        <p><a href="admin.php">Zur Admin-Konfiguration</a></p>
+                    <div className="flex items-center justify-center h-screen bg-slate-100">
+                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 max-w-md w-full text-center">
+                            <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-red-500"><Icon name="alert" className="w-6 h-6" /></div>
+                            <h2 className="font-bold text-[#0a192f] text-lg mb-2">Konfiguration nicht verfuegbar</h2>
+                            <p className="text-sm text-slate-500 mb-4">{configError}</p>
+                            <a href="admin.php" className="inline-block px-6 py-3 bg-[#e50046] text-white rounded-2xl font-bold hover:opacity-90 transition-all text-sm">Zur Admin-Konfiguration</a>
+                        </div>
                     </div>
                 );
             }
 
             if (!config?.configured) {
                 return (
-                    <div className="empty-box">
-                        <h2>Der Beratungsassistent ist noch nicht einsatzbereit.</h2>
-                        <p>Bevor normale Nutzer den Assistenten verwenden können, müssen im Admin-Bereich Passwort, API-Key, Projektprofil und Wissensbasis eingerichtet werden.</p>
-                        <p><a href="admin.php">Admin-Wizard öffnen</a></p>
+                    <div className="flex items-center justify-center h-screen bg-slate-100">
+                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 max-w-md w-full text-center">
+                            <div className="w-12 h-12 bg-[#0a192f] rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#e50046]"><Icon name="settings" className="w-6 h-6" /></div>
+                            <h2 className="font-bold text-[#0a192f] text-lg mb-2">Noch nicht eingerichtet</h2>
+                            <p className="text-sm text-slate-500 mb-4">Passwort, API-Key, Projektprofil und Wissensbasis muessen im Admin-Bereich eingerichtet werden.</p>
+                            <a href="admin.php" className="inline-block px-6 py-3 bg-[#e50046] text-white rounded-2xl font-bold hover:opacity-90 transition-all text-sm">Admin-Wizard oeffnen</a>
+                        </div>
                     </div>
                 );
             }
 
+            /* ── Main render ────────────────────────────────────────────── */
             return (
-                <div className="app-shell">
-                    <header className="app-header">
-                        <div className="brand">
-                            <div className="brand-mark">BA</div>
+                <React.Fragment>
+                <div className="flex flex-col h-screen overflow-hidden">
+
+                    {/* ── Header ──────────────────────────────────────────── */}
+                    <header className="bg-[#0a192f] text-white p-4 shadow-xl flex justify-between items-center z-20 shrink-0">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-white/10 p-2 rounded-lg border border-white/10 text-[#e50046]">
+                                <Icon name="bot" className="w-6 h-6" />
+                            </div>
                             <div>
-                                <h1>{config.title}</h1>
-                                <p>{config.subtitle || config.scope_summary || "Beratungsassistent mit dokumentgestützter Wissensbasis."}</p>
+                                <h1 className="font-bold text-base leading-none">{config?.title || "Beratungsassistent"}</h1>
+                                <p className="text-[9px] text-slate-400 mt-0.5 uppercase tracking-widest">{config?.subtitle || config?.scope_summary || "Dokumentgestuetzte Beratung mit RAG"}</p>
                             </div>
                         </div>
-                        <div className="toggle">
-                            <button className={view === "chat" ? "active" : ""} onClick={() => setView("chat")}>Chat</button>
-                            <button className={view === "guide" ? "active" : ""} onClick={() => setView("guide")}>Vorlagen</button>
+                        <div className="flex items-center gap-2">
+                            {config?.safety?.pii_notice && (
+                                <span className="hidden md:flex items-center gap-1.5 text-[9px] text-slate-500 uppercase tracking-widest">
+                                    <Icon name="shield" className="w-3 h-3 text-[#e50046]" /> Keine personenbezogenen Daten
+                                </span>
+                            )}
+                            {isSchifT !== undefined && config?.frontend?.schift_toggle !== false && (
+                                <button
+                                    onClick={() => setIsSchifT(!isSchifT)}
+                                    title={isSchifT ? "Modus: SchifT – Klicken fuer Standard" : "Standard-Modus – Klicken fuer SchifT"}
+                                    className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-bold transition-all border ${
+                                        isSchifT
+                                            ? 'bg-amber-500 border-amber-400 text-white'
+                                            : 'bg-white/10 border-white/10 text-slate-300 hover:text-white'
+                                    }`}
+                                >
+                                    <Icon name={isSchifT ? "toggle" : "toggleOff"} className="w-4 h-4" />
+                                    <span className="hidden sm:inline">{isSchifT ? 'SchifT' : 'Standard'}</span>
+                                </button>
+                            )}
+                            <button onClick={clearChat} title="Neues Gespraech"
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-bold transition-all border bg-white/10 border-white/10 text-slate-300 hover:text-white">
+                                <Icon name="plus" className="w-4 h-4" />
+                                <span className="hidden sm:inline">Neu</span>
+                            </button>
+                            <button
+                                onClick={() => setCurrentView(currentView === "chat" ? "templates" : "chat")}
+                                className="bg-[#e50046] hover:opacity-90 px-4 py-2 rounded-md flex items-center gap-2 transition-all text-sm font-bold shadow-lg"
+                            >
+                                <Icon name={currentView === "chat" ? "settings" : "message"} className="w-4 h-4" />
+                                {currentView === "chat" ? "Vorlagen" : "Chat"}
+                            </button>
+                            <a href="admin.php" title="Admin" className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-bold transition-all border bg-white/10 border-white/10 text-slate-300 hover:text-white no-underline">
+                                <Icon name="settings" className="w-4 h-4" />
+                                <span className="hidden md:inline">Admin</span>
+                            </a>
                         </div>
                     </header>
 
-                    <main className="layout">
-                        <section className="chat-shell">
-                            <div className="chat-scroll" ref={scrollRef} onScroll={handleScroll}>
-                                {messages.length === 0 ? (
-                                    <div className="welcome">
-                                        <h2>{config.frontend?.welcome_heading || config.title}</h2>
-                                        <p>{config.frontend?.welcome_text || config.scope_summary}</p>
-                                        {config.assistant_mission && <p>{config.assistant_mission}</p>}
-                                        <div className="pill-row">
-                                            {scopeBullets.slice(0, 4).map((bullet) => (
-                                                <span className="pill" key={bullet}>{bullet}</span>
-                                            ))}
+                    {/* ── Main ────────────────────────────────────────────── */}
+                    <main className="flex-1 overflow-hidden relative flex flex-col bg-slate-50">
+
+                        {currentView === "chat" ? (
+                            <>
+                                <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+
+                                    {/* Empty state / Onboarding */}
+                                    {messages.length === 0 && (
+                                        <div className="flex flex-col items-center justify-center h-full text-center px-4 py-8">
+                                            <div className="bg-white p-7 rounded-3xl shadow-sm border border-slate-200 max-w-lg w-full">
+                                                <div className="w-16 h-16 bg-[#0a192f] rounded-2xl flex items-center justify-center mx-auto mb-5 text-[#e50046]">
+                                                    <Icon name="bot" className="w-8 h-8" />
+                                                </div>
+                                                <h2 className="text-slate-800 font-bold text-xl mb-1">{config?.title || "Beratungsassistent"}</h2>
+                                                <p className="text-xs font-bold text-[#e50046] uppercase tracking-widest mb-4">{config?.topic || "Dokumentgestuetzte Beratung"}</p>
+                                                {isSchifT && (
+                                                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-4 text-xs text-amber-700 font-medium">
+                                                        Modus: Schule in freier Traegerschaft (SchifT)
+                                                    </div>
+                                                )}
+                                                <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+                                                    {config?.frontend?.welcome_text || config?.scope_summary || "Dieser Assistent beantwortet Fragen auf Basis der hinterlegten Wissensbasis."}
+                                                    <br/><span className="text-amber-600 font-medium">{config?.safety?.pii_notice || "Bitte keine personenbezogenen Daten eingeben."}</span>
+                                                </p>
+                                                {quickQuestions.length > 0 && (
+                                                    <>
+                                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 text-left">Schnelleinstieg:</p>
+                                                        <div className="space-y-2">
+                                                            {quickQuestions.slice(0, 6).map((q, i) => (
+                                                                <button
+                                                                    key={i}
+                                                                    onClick={() => setInput(q)}
+                                                                    className="w-full text-left text-xs p-3 bg-slate-50 hover:bg-white border border-slate-100 hover:border-[#e50046] hover:text-[#e50046] rounded-xl transition-all font-medium text-slate-600 flex items-center gap-2.5"
+                                                                >
+                                                                    <Icon name="zap" className="w-3.5 h-3.5 shrink-0 text-[#e50046]" />
+                                                                    {q}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
-                                        {quickQuestions.length > 0 && (
-                                            <div style={{ marginTop: 22 }}>
-                                                <h3 style={{ margin: "0 0 12px" }}>Schnelleinstieg</h3>
-                                                <div className="button-list">
-                                                    {quickQuestions.map((question) => (
-                                                        <button className="option-btn" key={question} onClick={() => sendQuery(question)}>
-                                                            {question}
+                                    )}
+
+                                    {/* Messages */}
+                                    {messages.map((msg, idx) => (
+                                        <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`max-w-[85%] md:max-w-[75%] p-4 rounded-2xl shadow-sm border ${
+                                                msg.role === 'user'
+                                                    ? 'bg-[#e50046] text-white border-[#e50046] rounded-tr-none'
+                                                    : 'bg-white text-slate-800 border-slate-200 rounded-tl-none'
+                                            }`}>
+                                                <div className={`flex items-center gap-2 mb-2 ${msg.role === 'user' ? 'opacity-90 text-xs' : 'text-[#0a192f] font-bold text-xs'}`}>
+                                                    <Icon name={msg.role === 'user' ? 'user' : 'bot'} className="w-3 h-3" />
+                                                    <span className="uppercase tracking-wider">
+                                                        {msg.role === 'user' ? 'Sie' : (config?.title || 'Assistent')}
+                                                    </span>
+                                                </div>
+                                                {msg.role === 'assistant' ? (
+                                                    <div>
+                                                        <div className="text-sm md" dangerouslySetInnerHTML={{ __html: marked.parse(msg.text || "") }} />
+                                                        {isStreaming && idx === messages.length - 1 && (
+                                                            <span className="streaming-cursor" />
+                                                        )}
+                                                        {!(isStreaming && idx === messages.length - 1) && msg.text && (
+                                                            <div className="flex items-center gap-1 mt-3 pt-2 border-t border-slate-100">
+                                                                <button
+                                                                    onClick={() => copyMessage(msg.text, idx)}
+                                                                    title="Antwort kopieren"
+                                                                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all text-xs"
+                                                                >
+                                                                    {copiedIndex === idx
+                                                                        ? <><Icon name="checkmark" className="w-3.5 h-3.5 text-green-500" /><span className="text-green-600 font-medium">Kopiert</span></>
+                                                                        : <><Icon name="clipboard" className="w-3.5 h-3.5" /><span>Kopieren</span></>
+                                                                    }
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => downloadAsPdf(msg.text, (config?.title || "Beratungsassistent") + "-antwort")}
+                                                                    title="Als PDF speichern"
+                                                                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all text-xs"
+                                                                >
+                                                                    <Icon name="fileDown" className="w-3.5 h-3.5" />
+                                                                    <span>PDF</span>
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-sm whitespace-pre-wrap leading-relaxed">{msg.text}</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    {/* Loading */}
+                                    {isLoading && (
+                                        <div className="flex justify-start">
+                                            <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm flex items-center gap-3">
+                                                <Icon name="refresh" className="w-4 h-4 text-[#e50046] animate-spin" />
+                                                <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Analyse laeuft...</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Error */}
+                                    {error && (
+                                        <div className="flex justify-center p-4">
+                                            <div className="bg-red-50 text-red-700 p-4 rounded-xl flex items-center gap-3 max-w-md border border-red-200">
+                                                <Icon name="alert" className="w-5 h-5 shrink-0" />
+                                                <span className="text-sm font-medium">{error}</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Input */}
+                                <div className="p-4 bg-white border-t border-slate-200 shadow-sm shrink-0">
+                                    <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex gap-3">
+                                        <input
+                                            type="text"
+                                            value={input}
+                                            onChange={(e) => setInput(e.target.value)}
+                                            placeholder={"Frage zu " + (config?.topic || "diesem Themenfeld") + " stellen..."}
+                                            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-sm focus:ring-2 focus:ring-[#e50046] outline-none"
+                                            disabled={isLoading || isStreaming}
+                                            autoComplete="off"
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={isLoading || isStreaming || !input.trim()}
+                                            aria-label="Nachricht senden"
+                                            className="bg-[#e50046] text-white p-3 rounded-xl hover:opacity-90 disabled:opacity-30 transition-all flex items-center justify-center min-w-[52px]"
+                                        >
+                                            <Icon name="send" className="w-5 h-5" />
+                                        </button>
+                                    </form>
+                                </div>
+                            </>
+                        ) : (
+                            /* ── Templates view ────────────────────────────────── */
+                            <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-100">
+                                <div className="max-w-3xl mx-auto space-y-5">
+
+                                    <div className="bg-[#0a192f] text-white rounded-3xl p-5 shadow-sm">
+                                        <h2 className="font-bold text-sm mb-3 flex items-center gap-2">
+                                            <Icon name="info" className="w-4 h-4 text-[#e50046]" /> So nutzen Sie die Vorlagen
+                                        </h2>
+                                        <ol className="space-y-1.5 text-xs text-slate-300">
+                                            <li className="flex gap-2.5"><span className="text-[#e50046] font-bold shrink-0">1.</span> Waehlen Sie eine Kategorie.</li>
+                                            <li className="flex gap-2.5"><span className="text-[#e50046] font-bold shrink-0">2.</span> Klicken Sie eine Option an – der Prompt wird in den Chat uebernommen.</li>
+                                            <li className="flex gap-2.5"><span className="text-[#e50046] font-bold shrink-0">3.</span> Sie koennen den Prompt im Chat noch anpassen, bevor Sie ihn absenden.</li>
+                                        </ol>
+                                    </div>
+
+                                    {quickQuestions.length > 0 && (
+                                        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                                            <div className="bg-slate-50 p-5 border-b border-slate-100 flex items-start gap-4">
+                                                <div className="bg-[#e50046] text-white p-3 rounded-xl shrink-0">
+                                                    <Icon name="zap" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-slate-800 text-base leading-tight">Schnelleinstieg</h3>
+                                                    <p className="text-xs text-slate-400 mt-1">Diese Fragen werden direkt in den Chat uebernommen.</p>
+                                                </div>
+                                            </div>
+                                            <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                {quickQuestions.map((q, i) => (
+                                                    <button key={i} onClick={() => applyTemplate(q)}
+                                                        className="text-left text-xs p-4 bg-slate-50 hover:bg-white border border-slate-100 hover:border-[#e50046] rounded-2xl transition-all flex items-center justify-between">
+                                                        <span className="font-bold text-slate-600">{q}</span>
+                                                        <Icon name="chevronRight" className="w-4 h-4 text-slate-300 shrink-0" />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-1 gap-5 pb-12">
+                                        {templates.map((section, sIdx) => (
+                                            <div key={sIdx} className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                                                <div className="bg-slate-50 p-5 border-b border-slate-100 flex items-start gap-4">
+                                                    <div className="bg-[#0a192f] text-white p-3 rounded-xl shrink-0">
+                                                        <Icon name={section.icon || "layers"} />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-bold text-slate-800 text-base leading-tight">{section.title || "Vorlage"}</h3>
+                                                        <p className="text-xs text-slate-400 mt-1">{section.description || "Prompt-Bausteine fuer wiederkehrende Beratungsfaelle."}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    {(section.options || []).map((opt, oIdx) => (
+                                                        <button key={oIdx} onClick={() => applyTemplate(opt.prompt || opt.label)}
+                                                            className="text-left text-xs p-4 bg-slate-50 hover:bg-white border border-slate-100 hover:border-[#e50046] rounded-2xl transition-all flex items-center justify-between">
+                                                            <span className="font-bold text-slate-600">{opt.label}</span>
+                                                            <Icon name="chevronRight" className="w-4 h-4 text-slate-300 shrink-0" />
                                                         </button>
                                                     ))}
                                                 </div>
                                             </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    messages.map((message, index) => (
-                                        <article className={"message " + message.role} key={index}>
-                                            <div className="bubble">
-                                                {message.role === "assistant" ? (
-                                                    <div className="md" dangerouslySetInnerHTML={{ __html: marked.parse(message.text || "") }} />
-                                                ) : (
-                                                    <div>{message.text}</div>
-                                                )}
-                                            </div>
-                                            <div className="message-meta">
-                                                <span>{message.role === "assistant" ? "Assistent" : "Nutzer"}</span>
-                                                {message.role === "assistant" && message.text && (
-                                                    <button onClick={() => copyMessage(message.text, index)}>
-                                                        {copiedIndex === index ? "Kopiert" : "Kopieren"}
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </article>
-                                    ))
-                                )}
-                            </div>
-
-                            <div className="composer">
-                                <form onSubmit={submit}>
-                                    <textarea
-                                        value={input}
-                                        onChange={(event) => setInput(event.target.value)}
-                                        placeholder={"Frage zu " + (config.topic || "diesem Themenfeld") + " stellen..."}
-                                    />
-                                    <div className="composer-foot">
-                                        <div className="note">{config.safety?.pii_notice || "Bitte keine personenbezogenen Daten eingeben."}</div>
-                                        <button className="send-btn" disabled={isLoading || isStreaming || !input.trim()} type="submit">
-                                            {isStreaming ? "Antwort läuft..." : "Antwort erzeugen"}
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </section>
-
-                        <aside className={"panel " + (view === "guide" ? "visible" : "")}>
-                            <div className="info-block">
-                                <h2>Scope</h2>
-                                <p>{config.scope_summary}</p>
-                                {scopeBullets.length > 0 && (
-                                    <ul>
-                                        {scopeBullets.map((bullet) => <li key={bullet}>{bullet}</li>)}
-                                    </ul>
-                                )}
-                            </div>
-
-                            {taskExamples.length > 0 && (
-                                <div className="info-block">
-                                    <h2>Aufgabenbeispiele</h2>
-                                    <div className="button-list">
-                                        {taskExamples.map((task) => (
-                                            <button className="option-btn" key={task} onClick={() => { setInput(task); setView("chat"); }}>
-                                                {task}
-                                            </button>
                                         ))}
                                     </div>
-                                </div>
-                            )}
 
-                            {templates.map((section, index) => (
-                                <div className="info-block" key={section.title + index}>
-                                    <h2>{section.title}</h2>
-                                    {section.description && <p>{section.description}</p>}
-                                    <div className="button-list">
-                                        {(section.options || []).map((option) => (
-                                            <button
-                                                className="option-btn"
-                                                key={option.label}
-                                                onClick={() => { setInput(option.prompt || option.label); setView("chat"); }}
-                                            >
-                                                {option.label}
-                                                {option.prompt && <small>{option.prompt}</small>}
-                                            </button>
-                                        ))}
-                                    </div>
+                                    {templates.length === 0 && quickQuestions.length === 0 && (
+                                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 text-center">
+                                            <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-400"><Icon name="layers" className="w-6 h-6" /></div>
+                                            <h3 className="font-bold text-[#0a192f] mb-2">Keine Vorlagen vorhanden</h3>
+                                            <p className="text-sm text-slate-500">Im Admin-Bereich koennen nach dem Dateiupload automatisch Vorlagen und Fragen generiert werden.</p>
+                                        </div>
+                                    )}
                                 </div>
-                            ))}
-                        </aside>
+                            </div>
+                        )}
                     </main>
+
+                    {/* ── Footer ──────────────────────────────────────────── */}
+                    <footer className="bg-[#0a192f] text-slate-400 py-3 px-4 border-t border-white/5 flex flex-wrap justify-center gap-4 text-[9px] font-bold uppercase tracking-widest shrink-0">
+                        <span className="flex items-center gap-2">
+                            <Icon name="shield" className="w-3 h-3 text-[#e50046]" />
+                            <span>RAG-gestuetzter Beratungsassistent</span>
+                        </span>
+                        <button onClick={() => setShowPrivacy(true)}
+                            className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors">
+                            <Icon name="shield" className="w-3 h-3 text-[#e50046]" /> Datenschutz
+                        </button>
+                        <button onClick={() => setShowDSB(true)}
+                            className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors">
+                            <Icon name="info" className="w-3 h-3 text-[#e50046]" /> DSB-Dokumentation
+                        </button>
+                    </footer>
                 </div>
+
+                {showPrivacy && <PrivacyModal />}
+                {showDSB    && <DSBModal />}
+                </React.Fragment>
             );
         }
 
