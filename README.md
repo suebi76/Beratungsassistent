@@ -95,6 +95,13 @@ Weitere Formate können später über dieselbe Ingest-Pipeline ergänzt werden.
 - Wissensdateien und Chunks liegen außerhalb des normalen Frontend-Zugriffs und werden nur über PHP verwendet
 - Der serverseitige Prompt wird nicht aus dem Frontend übernommen, sondern aus der Projektkonfiguration erzeugt
 
+## Kontakt
+
+S. Schwabe  
+s.schwabe@nibis.de
+
 ## Lizenz
 
-CC BY 4.0.
+- Der Softwarecode in diesem Repository steht unter der MIT-Lizenz.
+- Dokumentation, Vorlagen, Beispielinhalte und sonstige nicht-codebezogene Inhalte stehen unter CC BY 4.0, sofern im Einzelfall nichts anderes vermerkt ist.
+- Die vollständigen Lizenztexte stehen in LICENSE und LICENSE-CONTENT.
