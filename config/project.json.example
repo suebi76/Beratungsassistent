@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "slug": "beratungsassistent",
+  "title": "Beratungs-Assistent",
+  "subtitle": "Konfigurierbarer KI-Assistent mit dateibasierter Wissensbasis",
+  "topic": "",
+  "audience": "",
+  "language": "de-DE",
+  "assistant_mission": "",
+  "scope_summary": "",
+  "scope_bullets": [],
+  "safety": {
+    "pii_notice": "Bitte keine personenbezogenen Daten, vertraulichen Einzelfaelle oder geheimhaltungsbeduerftigen Inhalte eingeben.",
+    "pii_rejection_message": "Bitte geben Sie keine personenbezogenen Daten oder vertraulichen Einzelfaelle ein. Formulieren Sie Ihre Frage allgemeiner, dann helfe ich gerne weiter.",
+    "out_of_scope_message": "Zu dieser Frage liegen im aktuell geladenen Wissensbestand keine belastbaren Informationen vor.",
+    "citation_required": true,
+    "scope_guard": true
+  },
+  "frontend": {
+    "welcome_heading": "Beratungs-Assistent",
+    "welcome_text": "Dieser Assistent beantwortet Fragen auf Basis der im Hintergrund geladenen Dateien.",
+    "quick_questions": [],
+    "task_examples": [],
+    "templates": []
+  },
+  "knowledge_profile": {
+    "document_summary": "",
+    "focus_areas": [],
+    "limitations": []
+  },
+  "documents": [],
+  "setup": {
+    "profile_completed_at": null,
+    "knowledge_completed_at": null,
+    "last_profile_generation_at": null
+  }
+}

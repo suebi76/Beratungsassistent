@@ -1,0 +1,11 @@
+config/config.php
+config/project.json
+rag/.admin_password
+rag/chunks/*
+!rag/chunks/.gitkeep
+rag/uploads/*
+!rag/uploads/.gitkeep
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

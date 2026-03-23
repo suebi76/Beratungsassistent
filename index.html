@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Konfigurierbarer Beratungsassistent mit dateibasierter Wissensbasis und RAG.">
+    <title>Beratungsassistent</title>
+    <script src="vendor/react.production.min.js"></script>
+    <script src="vendor/react-dom.production.min.js"></script>
+    <script src="vendor/babel.min.js"></script>
+    <script src="vendor/marked.min.js"></script>
+    <style>
+        :root {
+            --bg: #f7f5ef;
+            --surface: rgba(255,255,255,0.88);
+            --surface-strong: #ffffff;
+            --border: rgba(24, 33, 43, 0.08);
+            --text: #18212b;
+            --muted: #68717c;
+            --brand-a: #1f5eff;
+            --brand-b: #f15b2a;
+            --accent-soft: rgba(31, 94, 255, 0.12);
+            --warning: #9a3412;
+        }
+
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(31, 94, 255, 0.12), transparent 32%),
+                radial-gradient(circle at top right, rgba(241, 91, 42, 0.12), transparent 26%),
+                linear-gradient(180deg, #fbfaf7 0%, #eef2f5 100%);
+        }
+
+        button, input, textarea { font: inherit; }
+
+        .app-shell {
+            min-height: 100%;
+            display: grid;
+            grid-template-rows: auto 1fr;
+        }
+
+        .app-header {
+            padding: 24px 20px 16px;
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .brand {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+        }
+
+        .brand-mark {
+            width: 56px;
+            height: 56px;
+            border-radius: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
+            color: white;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            box-shadow: 0 18px 40px rgba(24, 33, 43, 0.15);
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: clamp(1.25rem, 3vw, 2rem);
+            line-height: 1.05;
+        }
+
+        .brand p {
+            margin: 6px 0 0;
+            color: var(--muted);
+            max-width: 720px;
+        }
+
+        .toggle {
+            display: inline-flex;
+            gap: 8px;
+            padding: 6px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.72);
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 28px rgba(24,33,43,0.08);
+        }
+
+        .toggle button {
+            border: none;
+            background: transparent;
+            border-radius: 999px;
+            padding: 10px 14px;
+            cursor: pointer;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .toggle button.active {
+            background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
+            color: white;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 360px;
+            gap: 20px;
+            padding: 0 20px 24px;
+            min-height: 0;
+        }
+
+        .panel, .chat-shell, .composer {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            backdrop-filter: blur(14px);
+            box-shadow: 0 20px 50px rgba(24,33,43,0.07);
+        }
+
+        .panel {
+            border-radius: 28px;
+            padding: 22px;
+            overflow: auto;
+        }
+
+        .panel h2, .panel h3 {
+            margin: 0 0 10px;
+        }
+
+        .panel h2 {
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .panel p, .panel li {
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .panel ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .info-block {
+            padding: 16px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.72);
+            border: 1px solid rgba(24,33,43,0.06);
+            margin-bottom: 16px;
+        }
+
+        .button-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .option-btn {
+            appearance: none;
+            width: 100%;
+            text-align: left;
+            border: 1px solid rgba(24,33,43,0.08);
+            background: white;
+            border-radius: 18px;
+            padding: 12px 14px;
+            cursor: pointer;
+            color: var(--text);
+            transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+        }
+
+        .option-btn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(31, 94, 255, 0.3);
+            box-shadow: 0 14px 28px rgba(24,33,43,0.08);
+        }
+
+        .option-btn small {
+            display: block;
+            margin-top: 4px;
+            color: var(--muted);
+        }
+
+        .chat-shell {
+            border-radius: 32px;
+            display: grid;
+            grid-template-rows: 1fr auto;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .chat-scroll {
+            overflow: auto;
+            padding: 24px;
+            display: grid;
+            gap: 18px;
+        }
+
+        .welcome {
+            align-self: center;
+            justify-self: center;
+            width: min(100%, 760px);
+            padding: 28px;
+            border-radius: 28px;
+            background: rgba(255,255,255,0.86);
+            border: 1px solid rgba(24,33,43,0.08);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+        }
+
+        .welcome h2 { margin: 0 0 10px; font-size: 1.7rem; }
+        .welcome p { margin: 0 0 14px; color: var(--muted); line-height: 1.6; }
+
+        .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: var(--text);
+            font-size: 0.92rem;
+            border: 1px solid rgba(31, 94, 255, 0.12);
+        }
+
+        .message {
+            display: grid;
+            gap: 8px;
+        }
+
+        .message.user { justify-items: end; }
+        .message.assistant { justify-items: start; }
+
+        .bubble {
+            max-width: min(84%, 820px);
+            padding: 16px 18px;
+            border-radius: 24px;
+            line-height: 1.6;
+            box-shadow: 0 16px 34px rgba(24,33,43,0.06);
+        }
+
+        .message.user .bubble {
+            background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
+            color: white;
+            border-bottom-right-radius: 8px;
+        }
+
+        .message.assistant .bubble {
+            background: white;
+            border: 1px solid rgba(24,33,43,0.08);
+            border-bottom-left-radius: 8px;
+        }
+
+        .message-meta {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .message-meta button {
+            border: none;
+            background: transparent;
+            color: var(--brand-a);
+            cursor: pointer;
+            padding: 0;
+            font-weight: 700;
+        }
+
+        .md h1, .md h2, .md h3 { color: var(--text); margin: 1em 0 .4em; line-height: 1.2; }
+        .md p { margin: 0 0 .8em; }
+        .md ul, .md ol { padding-left: 1.3em; margin: 0 0 .9em; }
+        .md code { background: #f3f6fb; border-radius: 8px; padding: 0.1em 0.35em; }
+        .md pre { background: #18212b; color: #e8edf3; border-radius: 18px; padding: 14px; overflow-x: auto; }
+        .md blockquote { margin: 0 0 1em; padding-left: 14px; border-left: 4px solid rgba(31,94,255,0.35); color: var(--muted); }
+
+        .composer {
+            border-top: 1px solid var(--border);
+            background: rgba(255,255,255,0.92);
+            padding: 16px;
+        }
+
+        .composer form {
+            display: grid;
+            gap: 10px;
+        }
+
+        .composer textarea {
+            width: 100%;
+            min-height: 120px;
+            resize: vertical;
+            border-radius: 20px;
+            border: 1px solid rgba(24,33,43,0.12);
+            padding: 14px 16px;
+            color: var(--text);
+            background: white;
+        }
+
+        .composer textarea:focus {
+            outline: none;
+            border-color: rgba(31,94,255,0.45);
+            box-shadow: 0 0 0 4px rgba(31,94,255,0.12);
+        }
+
+        .composer-foot {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .note {
+            color: var(--warning);
+            font-size: .92rem;
+            line-height: 1.5;
+        }
+
+        .send-btn {
+            appearance: none;
+            border: none;
+            border-radius: 16px;
+            padding: 12px 18px;
+            font-weight: 800;
+            cursor: pointer;
+            color: white;
+            background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
+            box-shadow: 0 18px 30px rgba(24,33,43,0.12);
+        }
+
+        .send-btn:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .error-box, .empty-box {
+            margin: 20px;
+            padding: 22px;
+            border-radius: 24px;
+            background: rgba(255,255,255,0.92);
+            border: 1px solid rgba(24,33,43,0.08);
+        }
+
+        .error-box a, .empty-box a {
+            color: var(--brand-a);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .loading {
+            padding: 48px 20px;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        @media (max-width: 980px) {
+            .layout { grid-template-columns: 1fr; }
+            .panel { order: 2; display: none; }
+            .panel.visible { display: block; }
+            .chat-shell { min-height: 68vh; }
+        }
+
+        @media (max-width: 640px) {
+            .app-header { padding: 18px 14px 10px; flex-direction: column; }
+            .layout { padding: 0 14px 18px; }
+            .chat-scroll { padding: 18px 14px; }
+            .composer { padding: 12px; }
+            .bubble { max-width: 92%; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useEffect, useRef, useState } = React;
+        marked.setOptions({ breaks: true, gfm: true });
+
+        function App() {
+            const [config, setConfig] = useState(null);
+            const [configError, setConfigError] = useState(null);
+            const [loadingConfig, setLoadingConfig] = useState(true);
+            const [messages, setMessages] = useState([]);
+            const [input, setInput] = useState("");
+            const [isLoading, setIsLoading] = useState(false);
+            const [isStreaming, setIsStreaming] = useState(false);
+            const [view, setView] = useState("chat");
+            const [copiedIndex, setCopiedIndex] = useState(null);
+            const scrollRef = useRef(null);
+            const autoScroll = useRef(true);
+
+            useEffect(() => {
+                fetch("project.php")
+                    .then((response) => {
+                        if (!response.ok) {
+                            throw new Error("Konfiguration konnte nicht geladen werden.");
+                        }
+                        return response.json();
+                    })
+                    .then((data) => setConfig(data))
+                    .catch((error) => setConfigError(error.message || "Konfiguration konnte nicht geladen werden."))
+                    .finally(() => setLoadingConfig(false));
+            }, []);
+
+            useEffect(() => {
+                if (autoScroll.current && scrollRef.current) {
+                    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+                }
+            }, [messages, isLoading, isStreaming]);
+
+            const handleScroll = () => {
+                const el = scrollRef.current;
+                if (!el) return;
+                autoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+            };
+
+            const quickQuestions = config?.frontend?.quick_questions || [];
+            const templates = config?.frontend?.templates || [];
+            const taskExamples = config?.frontend?.task_examples || [];
+            const scopeBullets = config?.scope_bullets || [];
+
+            const sendQuery = async (queryText) => {
+                const trimmed = queryText.trim();
+                if (!trimmed || isLoading || isStreaming || !config?.configured) {
+                    return;
+                }
+
+                autoScroll.current = true;
+                const history = messages.slice();
+                const nextMessages = [...history, { role: "user", text: trimmed }, { role: "assistant", text: "" }];
+                setMessages(nextMessages);
+                setInput("");
+                setIsLoading(true);
+                setIsStreaming(true);
+
+                try {
+                    const response = await fetch("proxy.php", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            messages: history.map((entry) => ({
+                                role: entry.role,
+                                text: entry.text,
+                            })),
+                            query: trimmed,
+                        }),
+                    });
+
+                    if (!response.ok || !response.body) {
+                        throw new Error("Antwort vom Server fehlgeschlagen.");
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = "";
+                    let fullText = "";
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split("\n");
+                        buffer = lines.pop() || "";
+
+                        for (const line of lines) {
+                            if (!line.startsWith("data: ")) continue;
+                            const payload = line.slice(6).trim();
+                            if (!payload || payload === "[DONE]") continue;
+
+                            const data = JSON.parse(payload);
+                            if (data.error) {
+                                throw new Error(data.error);
+                            }
+
+                            const chunk = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                            if (!chunk) continue;
+                            fullText += chunk;
+                            setMessages((current) => {
+                                const updated = current.slice();
+                                updated[updated.length - 1] = { role: "assistant", text: fullText };
+                                return updated;
+                            });
+                        }
+                    }
+
+                    if (!fullText) {
+                        throw new Error("Keine Antwort erhalten.");
+                    }
+                } catch (error) {
+                    setMessages((current) => {
+                        const updated = current.slice(0, -1);
+                        updated.push({
+                            role: "assistant",
+                            text: "## Fehler\n\nDie Antwort konnte nicht erzeugt werden.\n\n**Hinweis:** " + (error.message || "Unbekannter Fehler."),
+                        });
+                        return updated;
+                    });
+                } finally {
+                    setIsLoading(false);
+                    setIsStreaming(false);
+                }
+            };
+
+            const submit = (event) => {
+                event.preventDefault();
+                sendQuery(input);
+            };
+
+            const copyMessage = async (text, index) => {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    setCopiedIndex(index);
+                    window.setTimeout(() => setCopiedIndex(null), 1800);
+                } catch (error) {}
+            };
+
+            if (loadingConfig) {
+                return <div className="loading">Konfiguration wird geladen...</div>;
+            }
+
+            if (configError) {
+                return (
+                    <div className="error-box">
+                        <h2>Konfiguration nicht verfuegbar</h2>
+                        <p>{configError}</p>
+                        <p><a href="admin.php">Zur Admin-Konfiguration</a></p>
+                    </div>
+                );
+            }
+
+            if (!config?.configured) {
+                return (
+                    <div className="empty-box">
+                        <h2>Der Beratungsassistent ist noch nicht einsatzbereit.</h2>
+                        <p>Bevor normale Nutzer den Assistenten verwenden koennen, muessen im Admin-Bereich Passwort, API-Key, Projektprofil und Wissensbasis eingerichtet werden.</p>
+                        <p><a href="admin.php">Admin-Wizard oeffnen</a></p>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="app-shell">
+                    <header className="app-header">
+                        <div className="brand">
+                            <div className="brand-mark">BA</div>
+                            <div>
+                                <h1>{config.title}</h1>
+                                <p>{config.subtitle || config.scope_summary || "Beratungsassistent mit dokumentgestuetzter Wissensbasis."}</p>
+                            </div>
+                        </div>
+                        <div className="toggle">
+                            <button className={view === "chat" ? "active" : ""} onClick={() => setView("chat")}>Chat</button>
+                            <button className={view === "guide" ? "active" : ""} onClick={() => setView("guide")}>Vorlagen</button>
+                        </div>
+                    </header>
+
+                    <main className="layout">
+                        <section className="chat-shell">
+                            <div className="chat-scroll" ref={scrollRef} onScroll={handleScroll}>
+                                {messages.length === 0 ? (
+                                    <div className="welcome">
+                                        <h2>{config.frontend?.welcome_heading || config.title}</h2>
+                                        <p>{config.frontend?.welcome_text || config.scope_summary}</p>
+                                        {config.assistant_mission && <p>{config.assistant_mission}</p>}
+                                        <div className="pill-row">
+                                            {scopeBullets.slice(0, 4).map((bullet) => (
+                                                <span className="pill" key={bullet}>{bullet}</span>
+                                            ))}
+                                        </div>
+                                        {quickQuestions.length > 0 && (
+                                            <div style={{ marginTop: 22 }}>
+                                                <h3 style={{ margin: "0 0 12px" }}>Schnelleinstieg</h3>
+                                                <div className="button-list">
+                                                    {quickQuestions.map((question) => (
+                                                        <button className="option-btn" key={question} onClick={() => sendQuery(question)}>
+                                                            {question}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    messages.map((message, index) => (
+                                        <article className={"message " + message.role} key={index}>
+                                            <div className="bubble">
+                                                {message.role === "assistant" ? (
+                                                    <div className="md" dangerouslySetInnerHTML={{ __html: marked.parse(message.text || "") }} />
+                                                ) : (
+                                                    <div>{message.text}</div>
+                                                )}
+                                            </div>
+                                            <div className="message-meta">
+                                                <span>{message.role === "assistant" ? "Assistent" : "Nutzer"}</span>
+                                                {message.role === "assistant" && message.text && (
+                                                    <button onClick={() => copyMessage(message.text, index)}>
+                                                        {copiedIndex === index ? "Kopiert" : "Kopieren"}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </article>
+                                    ))
+                                )}
+                            </div>
+
+                            <div className="composer">
+                                <form onSubmit={submit}>
+                                    <textarea
+                                        value={input}
+                                        onChange={(event) => setInput(event.target.value)}
+                                        placeholder={"Frage zu " + (config.topic || "diesem Themenfeld") + " stellen..."}
+                                    />
+                                    <div className="composer-foot">
+                                        <div className="note">{config.safety?.pii_notice || "Bitte keine personenbezogenen Daten eingeben."}</div>
+                                        <button className="send-btn" disabled={isLoading || isStreaming || !input.trim()} type="submit">
+                                            {isStreaming ? "Antwort laeuft..." : "Antwort erzeugen"}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </section>
+
+                        <aside className={"panel " + (view === "guide" ? "visible" : "")}>
+                            <div className="info-block">
+                                <h2>Scope</h2>
+                                <p>{config.scope_summary}</p>
+                                {scopeBullets.length > 0 && (
+                                    <ul>
+                                        {scopeBullets.map((bullet) => <li key={bullet}>{bullet}</li>)}
+                                    </ul>
+                                )}
+                            </div>
+
+                            {taskExamples.length > 0 && (
+                                <div className="info-block">
+                                    <h2>Aufgabenbeispiele</h2>
+                                    <div className="button-list">
+                                        {taskExamples.map((task) => (
+                                            <button className="option-btn" key={task} onClick={() => { setInput(task); setView("chat"); }}>
+                                                {task}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {templates.map((section, index) => (
+                                <div className="info-block" key={section.title + index}>
+                                    <h2>{section.title}</h2>
+                                    {section.description && <p>{section.description}</p>}
+                                    <div className="button-list">
+                                        {(section.options || []).map((option) => (
+                                            <button
+                                                className="option-btn"
+                                                key={option.label}
+                                                onClick={() => { setInput(option.prompt || option.label); setView("chat"); }}
+                                            >
+                                                {option.label}
+                                                {option.prompt && <small>{option.prompt}</small>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </aside>
+                    </main>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+</body>
+</html>
