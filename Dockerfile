@@ -2,7 +2,7 @@ FROM php:8.2-apache
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libcurl4-openssl-dev libonig-dev \
-    && docker-php-ext-install curl mbstring fileinfo \
+    && docker-php-ext-install curl mbstring \
     && a2enmod headers rewrite \
     && rm -rf /var/lib/apt/lists/*
 
@@ -12,7 +12,8 @@ RUN a2enconf beratungsassistent
 
 COPY . /var/www/html/
 
-RUN mkdir -p /data \
+RUN sed -i 's/\r$//' /var/www/html/docker/entrypoint.sh \
+    && mkdir -p /data \
     && chown -R www-data:www-data /var/www/html /data \
     && chmod +x /var/www/html/docker/entrypoint.sh
 
