@@ -1,6 +1,7 @@
 config/config.php
 config/project.json
 rag/.admin_password
+rag/.rate-limit/
 rag/chunks/*
 !rag/chunks/.gitkeep
 rag/uploads/*
@@ -11,3 +12,6 @@ docker-data/
 Thumbs.db
 .vscode/
 .idea/
+.claude/
+.playwright-mcp/
+.sw/

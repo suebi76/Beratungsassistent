@@ -46,7 +46,9 @@ index.html              React-Frontend für normale Nutzer
 admin.php               Wizard und Admin-Dashboard
 proxy.php               Serverseitiger Gemini-Proxy mit Retrieval
 project.php             Öffentliche Laufzeit-Konfiguration für das Frontend
-lib/app.php             Gemeinsame PHP-Helfer für Konfiguration, Upload, Chunking und Retrieval
+lib/app.php             Kompatibler Bootstrap für die modularisierte PHP-Struktur
+src/                    Fachmodule für Runtime, Config, Security, RAG, Ingestion, Admin und API
+assets/                 Frontend-CSS und build-freie React/JSX-Komponenten
 config/                 Beispielkonfiguration im Repository
 rag/                    Beispielstruktur für Uploads und generierte Chunks
 docker/                 Container-Konfiguration
