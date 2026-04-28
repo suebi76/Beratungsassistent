@@ -152,6 +152,8 @@ function regenerate_project_profile(array $project, array $apiConfig): array
         'temperature' => 0.3,
         'maxOutputTokens' => 8192,
         'timeout' => 180,
+        'retries' => 1,
+        'retryDelaySeconds' => 3,
     ]);
 
     $profile = null;
@@ -183,4 +185,3 @@ function regenerate_project_profile(array $project, array $apiConfig): array
 
     return ['ok' => false, 'error' => 'Projektprofil konnte nicht gespeichert werden.'];
 }
-

@@ -20,6 +20,8 @@ function process_uploaded_document(array $file, array $project, array $apiConfig
         'temperature' => 0.2,
         'maxOutputTokens' => 65536,
         'timeout' => 240,
+        'retries' => 2,
+        'retryDelaySeconds' => 4,
     ]);
 
     if (!($generation['ok'] ?? false)) {
@@ -54,4 +56,3 @@ function process_uploaded_document(array $file, array $project, array $apiConfig
         ],
     ];
 }
-
