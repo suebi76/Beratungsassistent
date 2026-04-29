@@ -2,19 +2,14 @@
     const Icon = window.BeratungsassistentIcon;
     const { renderMarkdown } = window.BeratungsassistentMarkdown;
 
-    const EmptyChatState = ({ config, isSchifT, quickQuestions, onQuickQuestion }) => (
+    const EmptyChatState = ({ config, quickQuestions, onQuickQuestion }) => (
         <div className="flex flex-col items-center justify-center h-full text-center px-4 py-8">
             <div className="bg-white p-7 rounded-3xl shadow-sm border border-slate-200 max-w-lg w-full">
                 <div className="w-16 h-16 bg-[#0a192f] rounded-2xl flex items-center justify-center mx-auto mb-5 text-[#e50046]">
                     <Icon name="bot" className="w-8 h-8" />
                 </div>
                 <h2 className="text-slate-800 font-bold text-xl mb-1">{config?.title || "Beratungsassistent"}</h2>
-                <p className="text-xs font-bold text-[#e50046] uppercase tracking-widest mb-4">{config?.topic || "Dokumentgestuetzte Beratung"}</p>
-                {isSchifT && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-4 text-xs text-amber-700 font-medium">
-                        Modus: Schule in freier Traegerschaft (SchifT)
-                    </div>
-                )}
+                <p className="text-xs font-bold text-[#e50046] uppercase tracking-widest mb-4">{config?.topic || "Dokumentgestützte Beratung"}</p>
                 <p className="text-sm text-slate-500 mb-6 leading-relaxed">
                     {config?.frontend?.welcome_text || config?.scope_summary || "Dieser Assistent beantwortet Fragen auf Basis der hinterlegten Wissensbasis."}
                     <br/><span className="text-amber-600 font-medium">{config?.safety?.pii_notice || "Bitte keine personenbezogenen Daten eingeben."}</span>
@@ -127,7 +122,6 @@
         error,
         input,
         isLoading,
-        isSchifT,
         isStreaming,
         messages,
         quickQuestions,
@@ -144,7 +138,6 @@
                 {messages.length === 0 && (
                     <EmptyChatState
                         config={config}
-                        isSchifT={isSchifT}
                         quickQuestions={quickQuestions}
                         onQuickQuestion={onQuickQuestion}
                     />
@@ -167,7 +160,7 @@
                     <div className="flex justify-start">
                         <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm flex items-center gap-3">
                             <Icon name="refresh" className="w-4 h-4 text-[#e50046] animate-spin" />
-                            <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Analyse laeuft...</span>
+                            <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Analyse läuft...</span>
                         </div>
                     </div>
                 )}

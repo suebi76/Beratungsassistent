@@ -5,7 +5,7 @@
 - PHP 8.0+
 - PHP-Erweiterungen: `curl`, `fileinfo`, `mbstring`
 - Schreibrechte für das Laufzeitdatenverzeichnis
-- Ein Gemini-API-Key
+- Ein Gemini-API-Schlüssel
 
 ## Laufzeitdaten
 
@@ -42,9 +42,9 @@ SetEnv BERATUNGSASSISTENT_DATA_DIR /var/lib/beratungsassistent
 - Passwort festlegen
 - Das Passwort wird als Hash im Datenverzeichnis gespeichert
 
-### 5. Schritt 2: API-Key
+### 5. Schritt 2: API-Schlüssel
 
-- Gemini-API-Key eintragen
+- Gemini-API-Schlüssel eintragen
 - Optional das Modell anpassen
 - Die Konfiguration wird im Datenverzeichnis unter `config/config.php` gespeichert
 
@@ -56,7 +56,7 @@ SetEnv BERATUNGSASSISTENT_DATA_DIR /var/lib/beratungsassistent
 
 Diese Angaben steuern:
 
-- den serverseitigen System-Prompt
+- die serverseitige Systemanweisung
 - den Titel und Untertitel im Frontend
 - den fachlichen Scope des Assistenten
 
@@ -69,7 +69,7 @@ Beim Upload passieren drei Dinge:
 
 1. Die Originaldateien werden im Datenverzeichnis unter `rag/uploads/` gespeichert.
 2. Gemini erzeugt daraus Markdown-Chunks in `rag/chunks/`.
-3. Aus den vorhandenen Chunks werden Quick Questions, Aufgabenbeispiele und Vorlagen für das Frontend neu erzeugt.
+3. Aus den vorhandenen Chunks werden Schnellfragen, Aufgabenbeispiele und Vorlagen für das Frontend neu erzeugt.
 
 ### 8. Einsatzbereit
 
@@ -77,7 +77,7 @@ Nach dem letzten Schritt ist der Assistent unter `index.html` direkt nutzbar.
 
 ## Hinweise zum Hosting
 
-- Der API-Key darf nie ins Frontend oder in öffentliches JavaScript gelangen.
+- Der API-Schlüssel darf nie ins Frontend oder in öffentliches JavaScript gelangen.
 - Das Datenverzeichnis sollte in Produktion außerhalb des Webroots liegen.
 - Wenn der Assistent hinter einem Reverse Proxy läuft, sollte Streaming für `proxy.php` nicht gepuffert werden.
 - Für Docker und VPS-Bereitstellung siehe `DEPLOY.md`.

@@ -1,6 +1,6 @@
 # Beratungsassistent Source Structure
 
-Diese Struktur trennt fachliche Verantwortlichkeiten. `lib/app.php` bleibt nur als kompatibler Bootstrap fuer bestehende Einstiegspunkte (`admin.php`, `proxy.php`, `project.php`).
+Diese Struktur trennt fachliche Verantwortlichkeiten. `lib/app.php` bleibt nur als kompatibler Bootstrap für bestehende Einstiegspunkte (`admin.php`, `proxy.php`, `project.php`).
 
 ## Module
 
@@ -11,19 +11,19 @@ Diese Struktur trennt fachliche Verantwortlichkeiten. `lib/app.php` bleibt nur a
 - `Ingestion/`: Uploads, Dokumentvalidierung, Chunk-Generierung und Dokumentverarbeitung.
 - `AI/`: Gemini-Client und API-Header.
 - `Profile/`: automatische Frontend-/Projektprofil-Generierung aus der Wissensbasis.
-- `PublicApi/`: oeffentliche Konfiguration fuer das Frontend.
-- `Prompt/`: Systemprompt und Chat-Normalisierung fuer Gemini.
+- `PublicApi/`: öffentliche Konfiguration für das Frontend.
+- `Prompt/`: Systemprompt und Chat-Normalisierung für Gemini.
 - `Admin/`: Admin-Controller, Request-Actions, Page-Model und serverseitige View-Templates.
 
 ## Entwicklungsregeln
 
 - Neue Fachlogik kommt in ein passendes `src/`-Modul, nicht in `lib/app.php`.
 - `lib/app.php` soll nur Includes enthalten.
-- Bestehende globale Funktionsnamen bleiben vorerst erhalten, damit die Anwendung ohne Big-Bang-Umbau weiter laeuft.
-- Nach jeder Aenderung: PHP-Lint fuer alle PHP-Dateien ausfuehren.
+- Bestehende globale Funktionsnamen bleiben vorerst erhalten, damit die Anwendung ohne Big-Bang-Umbau weiter läuft.
+- Nach jeder Änderung: PHP-Lint für alle PHP-Dateien ausführen.
 - Sicherheitslogik nicht im HTML/View-Code duplizieren, sondern in `src/Security/` kapseln.
 
-## Naechste Refactoring-Schritte
+## Nächste Refactoring-Schritte
 
-- Erste automatische Tests fuer Config, Retrieval und Uploadvalidierung ergaenzen.
-- Frontend-Komponenten mittelfristig aus der Build-freien `assets/js/`-Struktur in echte ES-Module ueberfuehren, falls ein Build-Schritt akzeptiert wird.
+- Erste automatische Tests für Config, Retrieval und Uploadvalidierung ergänzen.
+- Frontend-Komponenten mittelfristig aus der Build-freien `assets/js/`-Struktur in echte ES-Module überführen, falls ein Build-Schritt akzeptiert wird.

@@ -25,7 +25,6 @@
         const [error, setError] = useState(null);
         const [showPrivacy, setShowPrivacy] = useState(false);
         const [showDSB, setShowDSB] = useState(false);
-        const [isSchifT, setIsSchifT] = useState(false);
         const scrollRef = useRef(null);
         const autoScroll = useRef(true);
 
@@ -140,7 +139,7 @@
                 }
             } catch (err) {
                 setMessages((current) => current.slice(0, -1));
-                setError("Verbindungsfehler: " + (err.message || "Bitte versuchen Sie es spaeter erneut."));
+                setError("Verbindungsfehler: " + (err.message || "Bitte versuchen Sie es später erneut."));
             } finally {
                 setIsLoading(false);
                 setIsStreaming(false);
@@ -183,9 +182,7 @@
                     <AppHeader
                         config={config}
                         currentView={currentView}
-                        isSchifT={isSchifT}
                         onClearChat={clearChat}
-                        onToggleSchifT={() => setIsSchifT((current) => !current)}
                         onToggleView={() => setCurrentView(currentView === "chat" ? "templates" : "chat")}
                     />
 
@@ -197,7 +194,6 @@
                                 error={error}
                                 input={input}
                                 isLoading={isLoading}
-                                isSchifT={isSchifT}
                                 isStreaming={isStreaming}
                                 messages={messages}
                                 quickQuestions={quickQuestions}

@@ -39,7 +39,7 @@ function validate_uploaded_file(array $file): array
     }
 
     if (($file['size'] ?? 0) > MAX_UPLOAD_BYTES) {
-        return ['ok' => false, 'error' => 'Datei zu gross. Maximal erlaubt sind 20 MB.'];
+        return ['ok' => false, 'error' => 'Datei zu groß. Maximal erlaubt sind 20 MB.'];
     }
 
     $name = (string) ($file['name'] ?? '');
@@ -104,4 +104,3 @@ function read_text_source(string $path): string
     $content = (string) @file_get_contents($path, false, null, 0, MAX_TEXT_SOURCE_BYTES);
     return trim($content);
 }
-

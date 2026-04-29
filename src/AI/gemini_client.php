@@ -12,7 +12,7 @@ function gemini_api_headers(array $apiConfig): array
 function gemini_generate_text(array $parts, array $apiConfig, array $options = []): array
 {
     if (!api_key_is_configured($apiConfig)) {
-        return ['ok' => false, 'error' => 'Kein gültiger Gemini-API-Key konfiguriert.'];
+        return ['ok' => false, 'error' => 'Kein gültiger Gemini-API-Schlüssel konfiguriert.'];
     }
 
     $maxAttempts = max(1, 1 + (int) ($options['retries'] ?? 0));

@@ -33,7 +33,7 @@ function admin_render_wizard_api_form(array $apiConfig): void
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="save_apikey">
         <div>
-            <label>Gemini API-Key</label>
+            <label>Gemini-API-Schlüssel</label>
             <input type="password" name="apikey" required placeholder="AIza..." autocomplete="off">
         </div>
         <div>
@@ -41,7 +41,7 @@ function admin_render_wizard_api_form(array $apiConfig): void
             <input type="text" name="model" value="<?= e($apiConfig['model'] ?? DEFAULT_MODEL_NAME) ?>">
         </div>
         <div class="actions">
-            <button class="btn btn-primary" type="submit">API-Key speichern</button>
+            <button class="btn btn-primary" type="submit">API-Schlüssel speichern</button>
         </div>
     </form>
     <?php
@@ -81,7 +81,7 @@ function admin_render_wizard_documents_form(): void
         <div class="dropzone stack">
             <div>
                 <h3>Dateien für die Wissensbasis</h3>
-                <p class="muted">Laden Sie eine oder mehrere Dateien hoch. In dieser ersten Version werden PDF, TXT und Markdown unterstützt. Daraus werden Chunks, Vorlagen und Beispielaufgaben erzeugt.</p>
+                <p class="muted">Laden Sie eine oder mehrere Dateien hoch. In dieser ersten Version werden PDF, TXT und Markdown unterstützt. Daraus werden Textabschnitte, Vorlagen und Beispielaufgaben erzeugt.</p>
             </div>
             <div>
                 <label>Dateien</label>
@@ -94,4 +94,3 @@ function admin_render_wizard_documents_form(): void
     </form>
     <?php
 }
-

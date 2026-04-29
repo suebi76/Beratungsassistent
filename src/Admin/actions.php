@@ -124,7 +124,7 @@ function admin_action_save_api_key(array &$state, array $apiConfig): void
     }
 
     if (strlen($key) < 10) {
-        admin_set_message($state, 'error', 'Bitte den vollständigen Gemini-API-Key eintragen.');
+        admin_set_message($state, 'error', 'Bitte den vollständigen Gemini-API-Schlüssel eintragen.');
         return;
     }
 
@@ -134,8 +134,8 @@ function admin_action_save_api_key(array &$state, array $apiConfig): void
     }
 
     $message = trim((string) ($_POST['apikey'] ?? '')) === ''
-        ? 'API-Konfiguration gespeichert. Der vorhandene API-Key bleibt unverändert.'
-        : 'API-Key gespeichert. Weiter mit dem Projektprofil.';
+        ? 'API-Konfiguration gespeichert. Der vorhandene API-Schlüssel bleibt unverändert.'
+        : 'API-Schlüssel gespeichert. Weiter mit dem Projektprofil.';
     admin_set_message($state, 'success', $message);
 }
 
@@ -171,7 +171,7 @@ function admin_action_save_project(array &$state, array $project): void
 function admin_action_upload_documents(array &$state, array $apiConfig, array $project): void
 {
     if (!api_key_is_configured($apiConfig)) {
-        admin_set_message($state, 'error', 'Bitte zuerst einen gültigen API-Key hinterlegen.');
+        admin_set_message($state, 'error', 'Bitte zuerst einen gültigen API-Schlüssel hinterlegen.');
         return;
     }
     if (!project_profile_is_configured($project)) {
@@ -264,4 +264,3 @@ function admin_action_reset_password(array &$state): void
     set_flash('success', 'Passwort geändert. Bitte neu anmelden.');
     redirect('admin.php');
 }
-

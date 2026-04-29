@@ -25,7 +25,7 @@ function admin_render_project_profile_card(array $project): void
     ?>
     <div class="card">
         <h2>Projektprofil</h2>
-        <p class="muted">Diese Angaben steuern Titel, Themenrahmen, Begrüßung und den Server-Prompt.</p>
+        <p class="muted">Diese Angaben steuern Titel, Themenrahmen, Begrüßung und die serverseitige Systemanweisung.</p>
         <form method="post" class="stack">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="save_project">
@@ -55,7 +55,7 @@ function admin_render_knowledge_upload_card(array $uploadResults): void
     ?>
     <div class="card">
         <h2>Wissensbasis erweitern</h2>
-        <p class="muted">Neue Dateien werden in Chunks umgewandelt. Danach werden Quick Questions, Aufgabenbeispiele und Vorlagen automatisch aus der Wissensbasis neu erzeugt.</p>
+        <p class="muted">Neue Dateien werden in Textabschnitte umgewandelt. Danach werden Schnellfragen, Aufgabenbeispiele und Vorlagen automatisch aus der Wissensbasis neu erzeugt.</p>
         <form method="post" enctype="multipart/form-data" class="stack">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="upload_documents">
@@ -65,7 +65,7 @@ function admin_render_knowledge_upload_card(array $uploadResults): void
             </div>
             <div class="actions">
                 <button class="btn btn-primary" type="submit">Dateien hochladen und verarbeiten</button>
-                <button class="btn btn-secondary" type="submit" name="action" value="regenerate_profile">Frontend-Beispiele neu erzeugen</button>
+                <button class="btn btn-secondary" type="submit" name="action" value="regenerate_profile">Beispielinhalte neu erzeugen</button>
             </div>
         </form>
 
@@ -75,7 +75,7 @@ function admin_render_knowledge_upload_card(array $uploadResults): void
                     <div class="result-item">
                         <?php if ($result['ok'] ?? false): ?>
                             <strong><?= e($result['document']['original_name'] ?? '') ?></strong><br>
-                            <span class="muted"><?= count($result['saved_chunks'] ?? []) ?> Chunks erzeugt</span>
+                            <span class="muted"><?= count($result['saved_chunks'] ?? []) ?> Textabschnitte erzeugt</span>
                         <?php else: ?>
                             <strong>Fehler</strong><br>
                             <span class="muted"><?= e($result['error'] ?? '') ?></span>
@@ -97,9 +97,9 @@ function admin_render_live_config_card(array $publicConfig, array $chunks): void
         <div class="stack">
             <div><strong>Titel</strong><br><span class="muted"><?= e($publicConfig['title']) ?></span></div>
             <div><strong>Untertitel</strong><br><span class="muted"><?= e($publicConfig['subtitle']) ?></span></div>
-            <div><strong>Quick Questions</strong><br><span class="muted"><?= e((string) count($publicConfig['frontend']['quick_questions'])) ?> Einträge</span></div>
+            <div><strong>Schnellfragen</strong><br><span class="muted"><?= e((string) count($publicConfig['frontend']['quick_questions'])) ?> Einträge</span></div>
             <div><strong>Vorlagen</strong><br><span class="muted"><?= e((string) count($publicConfig['frontend']['templates'])) ?> Sektionen</span></div>
-            <div><strong>Chunks</strong><br><span class="muted"><?= e((string) count($chunks)) ?> Dateien im RAG-Verzeichnis</span></div>
+            <div><strong>Textabschnitte</strong><br><span class="muted"><?= e((string) count($chunks)) ?> Dateien im RAG-Verzeichnis</span></div>
         </div>
     </div>
     <?php
@@ -116,13 +116,13 @@ function admin_render_api_security_card(array $model): void
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="save_apikey">
             <div>
-                <strong>API-Key-Status</strong><br>
-                <span class="muted"><?= $apiKeyConfigured ? 'Gemini API-Key ist serverseitig hinterlegt.' : 'Noch kein Gemini API-Key hinterlegt.' ?></span>
+                <strong>API-Schlüssel-Status</strong><br>
+                <span class="muted"><?= $apiKeyConfigured ? 'Gemini-API-Schlüssel ist serverseitig hinterlegt.' : 'Noch kein Gemini-API-Schlüssel hinterlegt.' ?></span>
             </div>
             <div>
-                <label>Gemini API-Key</label>
-                <input type="password" name="apikey" value="" placeholder="<?= e($apiKeyConfigured ? 'Leer lassen, um den vorhandenen Key zu behalten' : 'AIza...') ?>" autocomplete="off">
-                <p class="muted" style="margin:6px 0 0">Der gespeicherte Key wird nicht mehr im HTML ausgegeben.</p>
+                <label>Gemini-API-Schlüssel</label>
+                <input type="password" name="apikey" value="" placeholder="<?= e($apiKeyConfigured ? 'Leer lassen, um den vorhandenen Schlüssel zu behalten' : 'AIza...') ?>" autocomplete="off">
+                <p class="muted" style="margin:6px 0 0">Der gespeicherte Schlüssel wird nicht mehr im HTML ausgegeben.</p>
             </div>
             <div>
                 <label>Modell</label>
@@ -154,4 +154,3 @@ function admin_render_api_security_card(array $model): void
     </div>
     <?php
 }
-

@@ -19,6 +19,16 @@ function extract_first_json_object(string $text): ?array
     return is_array($decoded) ? $decoded : null;
 }
 
+function profile_text_sentence(string $text): string
+{
+    $trimmed = trim($text);
+    if ($trimmed === '') {
+        return '';
+    }
+
+    return preg_match('/[.!?]$/u', $trimmed) ? $trimmed : $trimmed . '.';
+}
+
 function build_profile_generation_prompt(array $project, array $chunks): string
 {
     $title = trim((string) ($project['title'] ?? 'Beratungs-Assistent'));
@@ -79,12 +89,18 @@ function build_profile_generation_prompt(array $project, array $chunks): string
         . "- `task_examples`: genau 4 konkrete Arbeitsaufträge.\n"
         . "- `templates`: genau 4 Sektionen mit jeweils 3 Optionen.\n"
         . "- Die Prompts müssen unmittelbar als Beratungsfrage oder Arbeitsauftrag verwendbar sein.\n"
-        . "- Keine Hinweise auf Dateinamen im UI-Text, außer es ist fachlich notwendig.";
+        . "- Keine Hinweise auf Dateinamen im UI-Text, außer es ist fachlich notwendig.\n"
+        . "- Schreibe mit korrekten deutschen Umlauten und vermeide Umschreibungen wie ae, oe, ue oder ss, sofern echte Umlaute oder ß gemeint sind.\n"
+        . "- Vermeide doppelte Satzzeichen und künstlich klingende Formulierungen.";
 }
 
 function fallback_profile(array $project, array $chunks): array
 {
     $topic = trim((string) ($project['topic'] ?? 'diesem Themenfeld'));
+    $topicSentence = profile_text_sentence($topic);
+    $welcomeText = $topicSentence !== ''
+        ? 'Stellen Sie Fragen zu diesem Themenfeld: ' . $topicSentence . ' Die Antworten beziehen sich auf die im Hintergrund geladenen Dateien.'
+        : 'Stellen Sie Fragen zu diesem Themenfeld. Die Antworten beziehen sich auf die im Hintergrund geladenen Dateien.';
     $titles = array_values(array_unique(array_map(
         fn(array $chunk): string => $chunk['title'],
         array_slice($chunks, 0, 12)
@@ -132,7 +148,7 @@ function fallback_profile(array $project, array $chunks): array
         ],
         'frontend' => [
             'welcome_heading' => trim((string) ($project['title'] ?? 'Beratungs-Assistent')),
-            'welcome_text' => 'Stellen Sie Fragen zu ' . $topic . '. Die Antworten beziehen sich auf die im Hintergrund geladenen Dateien.',
+            'welcome_text' => $welcomeText,
             'quick_questions' => $quickQuestions,
             'task_examples' => $taskExamples,
             'templates' => $templates,

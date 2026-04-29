@@ -9,7 +9,7 @@
                 </div>
                 <div>
                     <h3 className="font-bold text-slate-800 text-base leading-tight">Schnelleinstieg</h3>
-                    <p className="text-xs text-slate-400 mt-1">Diese Fragen werden direkt in den Chat uebernommen.</p>
+                    <p className="text-xs text-slate-400 mt-1">Diese Fragen werden direkt in den Chat übernommen.</p>
                 </div>
             </div>
             <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -35,7 +35,7 @@
                 </div>
                 <div>
                     <h3 className="font-bold text-slate-800 text-base leading-tight">{section.title || "Vorlage"}</h3>
-                    <p className="text-xs text-slate-400 mt-1">{section.description || "Prompt-Bausteine fuer wiederkehrende Beratungsfaelle."}</p>
+                    <p className="text-xs text-slate-400 mt-1">{section.description || "Textvorlagen für wiederkehrende Beratungsfälle."}</p>
                 </div>
             </div>
             <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -59,7 +59,7 @@
                 <Icon name="layers" className="w-6 h-6" />
             </div>
             <h3 className="font-bold text-[#0a192f] mb-2">Keine Vorlagen vorhanden</h3>
-            <p className="text-sm text-slate-500">Im Admin-Bereich koennen nach dem Dateiupload automatisch Vorlagen und Fragen generiert werden.</p>
+            <p className="text-sm text-slate-500">Im Admin-Bereich können nach dem Dateiupload automatisch Vorlagen und Fragen generiert werden.</p>
         </div>
     );
 
@@ -71,9 +71,9 @@
                         <Icon name="info" className="w-4 h-4 text-[#e50046]" /> So nutzen Sie die Vorlagen
                     </h2>
                     <ol className="space-y-1.5 text-xs text-slate-300">
-                        <li className="flex gap-2.5"><span className="text-[#e50046] font-bold shrink-0">1.</span> Waehlen Sie eine Kategorie.</li>
-                        <li className="flex gap-2.5"><span className="text-[#e50046] font-bold shrink-0">2.</span> Klicken Sie eine Option an - der Prompt wird in den Chat uebernommen.</li>
-                        <li className="flex gap-2.5"><span className="text-[#e50046] font-bold shrink-0">3.</span> Sie koennen den Prompt im Chat noch anpassen, bevor Sie ihn absenden.</li>
+                        <li className="flex gap-2.5"><span className="text-[#e50046] font-bold shrink-0">1.</span> Wählen Sie eine Kategorie.</li>
+                        <li className="flex gap-2.5"><span className="text-[#e50046] font-bold shrink-0">2.</span> Klicken Sie eine Option an; die Formulierung wird in den Chat übernommen.</li>
+                        <li className="flex gap-2.5"><span className="text-[#e50046] font-bold shrink-0">3.</span> Sie können den Text im Chat noch anpassen, bevor Sie ihn absenden.</li>
                     </ol>
                 </div>
 

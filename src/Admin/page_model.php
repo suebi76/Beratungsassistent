@@ -22,7 +22,7 @@ function admin_build_page_model(array $requestState): array
         'apiKeyConfigured' => api_key_is_configured($apiConfig),
         'dataRootStatus' => runtime_uses_external_data_root()
             ? 'Externes Datenverzeichnis aktiv.'
-            : 'Standard-Datenverzeichnis im Projekt. Fuer produktive Installationen BERATUNGSASSISTENT_DATA_DIR ausserhalb des Webroots setzen.',
+            : 'Standard-Datenverzeichnis im Projekt. Für produktive Installationen BERATUNGSASSISTENT_DATA_DIR außerhalb des Webroots setzen.',
         'steps' => [
             'password' => '1. Passwort',
             'api' => '2. API',
@@ -31,4 +31,3 @@ function admin_build_page_model(array $requestState): array
         ],
     ];
 }
-

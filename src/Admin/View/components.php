@@ -34,7 +34,7 @@ function admin_render_topbar(array $project): void
             <div class="brand" style="margin:0">BA</div>
             <div>
                 <h1>Beratungsassistent Admin</h1>
-                <p class="muted" style="margin:4px 0 0">Konfiguration, Wissensbasis und Frontend-Beispiele kommen aus denselben Projektdateien.</p>
+                <p class="muted" style="margin:4px 0 0">Konfiguration, Wissensbasis und Beispielinhalte kommen aus denselben Projektdateien.</p>
             </div>
         </div>
         <div class="title-chip">
@@ -48,4 +48,3 @@ function admin_render_topbar(array $project): void
     </div>
     <?php
 }
-

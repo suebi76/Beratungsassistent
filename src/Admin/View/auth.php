@@ -38,7 +38,7 @@ function admin_render_login(array $model): void
             <div class="brand">BA</div>
             <div>
                 <h1>Admin-Anmeldung</h1>
-                <p class="muted">Melden Sie sich an, um Projektprofil, API-Key und Wissensbasis zu verwalten.</p>
+                <p class="muted">Melden Sie sich an, um Projektprofil, API-Schlüssel und Wissensbasis zu verwalten.</p>
             </div>
             <?php admin_render_flash($model['message'], $model['messageType']); ?>
             <form method="post" class="stack">
@@ -54,4 +54,3 @@ function admin_render_login(array $model): void
     </div>
     <?php
 }
-
