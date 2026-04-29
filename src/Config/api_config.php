@@ -26,48 +26,20 @@ function parse_legacy_php_config(string $php): array
 
 function load_api_config(): array
 {
-    ensure_app_dirs();
-    $file = api_config_file();
-    if (!file_exists($file)) {
-        return default_api_config();
-    }
-
-    $raw = (string) @file_get_contents($file);
-    if (strpos($raw, 'return [') !== false) {
-        $data = require $file;
-        if (is_array($data)) {
-            return [
-                'api_key' => trim((string) ($data['api_key'] ?? '')),
-                'model' => trim((string) ($data['model'] ?? DEFAULT_MODEL_NAME)) ?: DEFAULT_MODEL_NAME,
-            ];
-        }
-    }
-
-    return parse_legacy_php_config($raw);
+    return api_config_repository()->load();
 }
 
 function save_api_config(string $apiKey, string $model = DEFAULT_MODEL_NAME): bool
 {
-    ensure_app_dirs();
-    $content = "<?php\n"
-        . "return [\n"
-        . "    'api_key' => " . var_export(trim($apiKey), true) . ",\n"
-        . "    'model' => " . var_export(trim($model) ?: DEFAULT_MODEL_NAME, true) . ",\n"
-        . "];\n";
-
-    return file_put_contents(api_config_file(), $content) !== false;
+    try {
+        api_config_repository()->save($apiKey, $model);
+        return true;
+    } catch (Throwable) {
+        return false;
+    }
 }
 
 function api_key_is_configured(array $apiConfig): bool
 {
-    $value = trim((string) ($apiConfig['api_key'] ?? ''));
-    if ($value === '') {
-        return false;
-    }
-
-    return !in_array($value, [
-        'DEIN_GEMINI_API_KEY_HIER',
-        'DEIN_KEY_AUS_GOOGLE_AI_STUDIO',
-    ], true);
+    return api_config_repository()->isConfigured($apiConfig);
 }
-

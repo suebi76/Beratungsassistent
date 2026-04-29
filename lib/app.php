@@ -9,6 +9,12 @@ require_once __DIR__ . '/../src/Runtime/http.php';
 require_once __DIR__ . '/../src/Runtime/text.php';
 require_once __DIR__ . '/../src/Runtime/rate_limit.php';
 
+require_once __DIR__ . '/../src/Storage/AtomicWriter.php';
+require_once __DIR__ . '/../src/Storage/JsonStore.php';
+require_once __DIR__ . '/../src/Storage/LockManager.php';
+require_once __DIR__ . '/../src/Repository/ProjectRepository.php';
+require_once __DIR__ . '/../src/Repository/ApiConfigRepository.php';
+
 require_once __DIR__ . '/../src/Config/api_config.php';
 require_once __DIR__ . '/../src/Config/project_config.php';
 
@@ -25,4 +31,3 @@ require_once __DIR__ . '/../src/Ingestion/document_ingestion.php';
 require_once __DIR__ . '/../src/Profile/profile_generation.php';
 require_once __DIR__ . '/../src/PublicApi/project_payload.php';
 require_once __DIR__ . '/../src/Prompt/system_prompt.php';
-
