@@ -92,21 +92,34 @@ function admin_render_wizard_profile_form(array $project): void
 function admin_render_wizard_documents_form(): void
 {
     ?>
-    <form method="post" enctype="multipart/form-data" class="stack" style="max-width:760px" data-working-label="Dateien werden verarbeitet ...">
+    <form method="post" action="admin.php" enctype="multipart/form-data" class="stack upload-form" style="max-width:760px" data-upload-queue data-working-label="Dateien werden verarbeitet ...">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="upload_documents">
-        <div class="dropzone stack">
-            <div>
+        <div class="dropzone upload-dropzone stack" data-upload-dropzone>
+            <div class="upload-dropzone-copy">
                 <h3>Dateien für die Wissensbasis</h3>
-                <p class="muted">Laden Sie eine oder mehrere Dateien hoch. In dieser ersten Version werden PDF, TXT und Markdown unterstützt. Daraus werden Textabschnitte, Vorlagen und Beispielaufgaben erzeugt.</p>
+                <p class="muted">Laden Sie eine oder mehrere Dateien hoch oder ziehen Sie sie direkt in diesen Bereich. Daraus werden Textabschnitte, Vorlagen und Beispielaufgaben erzeugt.</p>
             </div>
-            <div>
-                <label>Dateien</label>
-                <input type="file" name="documents[]" multiple accept=".pdf,.txt,.md,.markdown">
+            <div class="actions">
+                <label class="btn btn-secondary" for="wizard-documents">Dateien auswählen</label>
+                <span class="muted">PDF, TXT oder Markdown</span>
             </div>
+            <input class="visually-hidden" id="wizard-documents" type="file" name="documents[]" data-upload-input multiple accept=".pdf,.txt,.md,.markdown">
+        </div>
+        <div class="upload-queue" data-upload-panel hidden>
+            <div class="upload-queue-head">
+                <div>
+                    <strong>Warteschlange</strong><br>
+                    <span class="muted" data-upload-summary>Keine Dateien ausgewählt.</span>
+                </div>
+                <div class="upload-progress" aria-hidden="true">
+                    <span data-upload-progress></span>
+                </div>
+            </div>
+            <div class="upload-list" data-upload-list></div>
         </div>
         <div class="actions">
-            <button class="btn btn-primary" type="submit">Dateien verarbeiten</button>
+            <button class="btn btn-primary" type="submit" data-upload-submit>Warteschlange starten</button>
         </div>
     </form>
     <?php

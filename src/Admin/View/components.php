@@ -122,73 +122,8 @@ function admin_render_model_test_form(array $model, string $style = ''): void
 
 function admin_render_scripts(): void
 {
+    $version = (string) (@filemtime(app_root('assets/js/admin.js')) ?: time());
     ?>
-    <script>
-        (() => {
-            document.querySelectorAll('[data-auto-submit]').forEach((control) => {
-                control.addEventListener('change', () => control.form?.submit());
-            });
-
-            document.querySelectorAll('[data-select-all]').forEach((control) => {
-                control.addEventListener('change', () => {
-                    const formId = control.getAttribute('data-select-all');
-                    const form = formId ? document.getElementById(formId) : control.form;
-                    if (!form) {
-                        return;
-                    }
-                    document.querySelectorAll('input[type="checkbox"][name="files[]"]').forEach((checkbox) => {
-                        if (checkbox.form !== form) {
-                            return;
-                        }
-                        checkbox.checked = control.checked;
-                    });
-                });
-            });
-
-            document.querySelectorAll('form[data-confirm], form[data-working-label]').forEach((form) => {
-                form.addEventListener('submit', (event) => {
-                    const confirmation = form.getAttribute('data-confirm');
-                    if (confirmation && !window.confirm(confirmation)) {
-                        event.preventDefault();
-                        return;
-                    }
-
-                    const submitter = event.submitter;
-                    const label = submitter?.getAttribute('data-working-label')
-                        || form.getAttribute('data-working-label');
-                    if (!label) {
-                        return;
-                    }
-
-                    form.setAttribute('aria-busy', 'true');
-                    form.classList.add('is-working');
-                    if (submitter && 'textContent' in submitter) {
-                        submitter.dataset.originalLabel = submitter.textContent || '';
-                        submitter.textContent = label;
-                    }
-                    if (submitter && !submitter.getAttribute('name')) {
-                        submitter.disabled = true;
-                    }
-
-                    form.querySelectorAll('button[type="submit"]').forEach((button) => {
-                        if (button === submitter && button.getAttribute('name')) {
-                            return;
-                        }
-                        button.disabled = true;
-                    });
-
-                    let status = form.querySelector('[data-working-status]');
-                    if (!status) {
-                        status = document.createElement('p');
-                        status.className = 'working-status';
-                        status.setAttribute('role', 'status');
-                        status.setAttribute('data-working-status', '');
-                        form.appendChild(status);
-                    }
-                    status.textContent = label;
-                });
-            });
-        })();
-    </script>
+    <script src="assets/js/admin.js?v=<?= e($version) ?>" defer></script>
     <?php
 }

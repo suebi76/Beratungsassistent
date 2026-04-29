@@ -212,6 +212,96 @@ function admin_render_styles(): void
         .dropzone { border: 2px dashed #c5d4d0; border-radius: 18px; padding: 26px; background: #f8fbfa; }
         .dropzone p { margin: 0; }
         .result-list { display: grid; gap: 12px; margin-top: 14px; }
+        .visually-hidden {
+            position: absolute !important;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        .upload-form { position: relative; }
+        .upload-dropzone {
+            border: 2px dashed #bdd1cc;
+            border-radius: 22px;
+            padding: 24px;
+            background:
+                linear-gradient(135deg, rgba(15, 118, 110, .08), transparent 58%),
+                #f8fbfa;
+            transition: border-color .16s ease, background .16s ease, transform .16s ease;
+        }
+        .upload-dropzone.is-dragover {
+            border-color: var(--color-primary);
+            background: rgba(15, 118, 110, .12);
+            transform: translateY(-1px);
+        }
+        .upload-dropzone-copy { display: grid; gap: 6px; }
+        .upload-dropzone-copy p { margin: 0; }
+        .upload-queue {
+            display: grid;
+            gap: 14px;
+            border: 1px solid #dfe8e4;
+            border-radius: 20px;
+            padding: 16px;
+            background: #fbfdfc;
+        }
+        .upload-queue-head {
+            display: grid;
+            gap: 12px;
+        }
+        .upload-progress {
+            height: 9px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: #e4ece9;
+        }
+        .upload-progress span {
+            display: block;
+            width: 0;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+            transition: width .2s ease;
+        }
+        .upload-list { display: grid; gap: 10px; }
+        .upload-item {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto auto;
+            gap: 12px;
+            align-items: center;
+            border: 1px solid #e3eae7;
+            border-radius: 16px;
+            padding: 12px;
+            background: white;
+        }
+        .upload-item > div:first-child { display: grid; gap: 3px; min-width: 0; }
+        .upload-item strong {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .upload-status {
+            border-radius: 999px;
+            padding: 5px 9px;
+            font-size: 12px;
+            font-weight: 850;
+            background: #eef3f1;
+            color: var(--color-primary-dark);
+        }
+        .upload-item.processing .upload-status { background: rgba(199, 91, 18, .14); color: #7a3a0d; }
+        .upload-item.done .upload-status { background: var(--color-success-bg); color: var(--color-success); }
+        .upload-item.error .upload-status { background: var(--color-danger-bg); color: var(--color-danger); }
+        .upload-remove {
+            border: 0;
+            background: transparent;
+            color: var(--color-danger);
+            font: inherit;
+            font-weight: 800;
+            cursor: pointer;
+        }
         .template-admin { display: grid; gap: 18px; }
         .template-section { display: grid; gap: 14px; border: 1px solid #e3eae7; border-radius: 18px; padding: 18px; background: #fbfcfb; }
         .template-section-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
@@ -250,6 +340,8 @@ function admin_render_styles(): void
             .select-row, .actions, .table-actions { flex-direction: column; align-items: stretch; }
             .btn { width: 100%; }
             .definition-grid div { grid-template-columns: 1fr; }
+            .upload-item { grid-template-columns: 1fr; align-items: stretch; }
+            .upload-status, .upload-remove { justify-self: start; }
         }
 
         @media (prefers-reduced-motion: reduce) {

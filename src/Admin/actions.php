@@ -15,11 +15,18 @@ function admin_handle_request(): array
     $csrfValid = $_SERVER['REQUEST_METHOD'] !== 'POST' || csrf_is_valid();
     if (!$csrfValid) {
         admin_set_message($state, 'error', 'Sicherheitsprüfung fehlgeschlagen. Bitte Formular erneut absenden.');
+        if (admin_is_async_admin_request()) {
+            admin_json_action_response($state, 403);
+        }
     }
 
     if (!password_is_set()) {
         if ($csrfValid && admin_post_action() === 'setup_password') {
             admin_action_setup_password($state);
+        }
+        if (admin_is_async_admin_request()) {
+            admin_set_message($state, 'error', 'Bitte zuerst das Admin-Passwort einrichten.');
+            admin_json_action_response($state, 403);
         }
         return $state;
     }
@@ -27,6 +34,10 @@ function admin_handle_request(): array
     if (!is_admin_authenticated()) {
         if ($csrfValid && admin_post_action() === 'login') {
             admin_action_login($state);
+        }
+        if (admin_is_async_admin_request()) {
+            admin_set_message($state, 'error', 'Die Admin-Sitzung ist abgelaufen. Bitte neu anmelden.');
+            admin_json_action_response($state, 401);
         }
         return $state;
     }
@@ -53,7 +64,17 @@ function admin_handle_request(): array
             admin_action_save_frontend_content($state, $project);
             break;
         case 'upload_documents':
+            if (admin_is_async_upload_request()) {
+                admin_action_upload_documents_async($state, $apiConfig, $project);
+                admin_json_action_response($state);
+            }
             admin_action_upload_documents($state, $apiConfig, $project);
+            break;
+        case 'finalize_upload_queue':
+            admin_action_finalize_upload_queue($state, $apiConfig);
+            if (admin_is_async_admin_request()) {
+                admin_json_action_response($state);
+            }
             break;
         case 'regenerate_profile':
             admin_action_regenerate_profile($state, $apiConfig, $project);
@@ -75,6 +96,32 @@ function admin_handle_request(): array
 function admin_post_action(): string
 {
     return $_SERVER['REQUEST_METHOD'] === 'POST' ? (string) ($_POST['action'] ?? '') : '';
+}
+
+function admin_is_async_admin_request(): bool
+{
+    return $_SERVER['REQUEST_METHOD'] === 'POST'
+        && (
+            (string) ($_POST['async_upload'] ?? '') === '1'
+            || (string) ($_POST['async_action'] ?? '') === '1'
+            || strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'fetch'
+        );
+}
+
+function admin_is_async_upload_request(): bool
+{
+    return admin_is_async_admin_request() && admin_post_action() === 'upload_documents';
+}
+
+function admin_json_action_response(array $state, int $status = 200): never
+{
+    json_response([
+        'ok' => ($state['messageType'] ?? '') === 'success',
+        'messageType' => (string) ($state['messageType'] ?? 'info'),
+        'message' => (string) ($state['message'] ?? ''),
+        'uploadResults' => is_array($state['uploadResults'] ?? null) ? $state['uploadResults'] : [],
+        'chunkCount' => chunk_count(),
+    ], $status);
 }
 
 function admin_set_message(array &$state, string $type, string $text): void
@@ -265,7 +312,7 @@ function admin_action_upload_documents(array &$state, array $apiConfig, array $p
 
     $successCount = 0;
     foreach ($files as $file) {
-        $result = process_uploaded_document($file, $project, $apiConfig);
+        $result = admin_process_uploaded_document_safely($file, $project, $apiConfig);
         $state['uploadResults'][] = $result;
         if ($result['ok'] ?? false) {
             $successCount++;
@@ -280,7 +327,7 @@ function admin_action_upload_documents(array &$state, array $apiConfig, array $p
 
     $project['setup']['knowledge_completed_at'] = now_iso();
     save_project_config($project);
-    $regen = regenerate_project_profile(load_project_config(), $apiConfig);
+    $regen = admin_regenerate_project_profile_safely(load_project_config(), $apiConfig);
     if ($regen['ok'] ?? false) {
         admin_set_message($state, 'success', $successCount . ' Datei(en) verarbeitet. Frontend-Vorlagen und Beispielfragen wurden neu erzeugt.');
         return;
@@ -289,15 +336,108 @@ function admin_action_upload_documents(array &$state, array $apiConfig, array $p
     admin_set_message($state, 'error', $successCount . ' Datei(en) verarbeitet, aber die automatische Frontend-Konfiguration konnte nicht aktualisiert werden.');
 }
 
+function admin_action_upload_documents_async(array &$state, array $apiConfig, array $project): void
+{
+    if (!api_key_is_configured($apiConfig)) {
+        admin_set_message($state, 'error', 'Bitte zuerst einen gültigen API-Schlüssel hinterlegen.');
+        return;
+    }
+    if (!project_profile_is_configured($project)) {
+        admin_set_message($state, 'error', 'Bitte zuerst Titel und Themenfeld speichern.');
+        return;
+    }
+
+    $files = normalize_uploaded_files($_FILES['documents'] ?? []);
+    $files = array_values(array_filter($files, static fn(array $file): bool => ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE));
+    if ($files === []) {
+        admin_set_message($state, 'error', 'Bitte mindestens eine Datei auswählen.');
+        return;
+    }
+
+    $successCount = 0;
+    foreach ($files as $file) {
+        $result = admin_process_uploaded_document_safely($file, $project, $apiConfig);
+        $state['uploadResults'][] = $result;
+        if ($result['ok'] ?? false) {
+            $successCount++;
+            $project['documents'][] = $result['document'];
+        }
+    }
+
+    if ($successCount <= 0) {
+        admin_set_message($state, 'error', 'Datei konnte nicht verarbeitet werden.');
+        return;
+    }
+
+    $project['setup']['knowledge_completed_at'] = now_iso();
+    if (!save_project_config($project)) {
+        admin_set_message($state, 'error', 'Datei verarbeitet, aber die Projektkonfiguration konnte nicht gespeichert werden.');
+        return;
+    }
+
+    $fileCount = count($files);
+    admin_set_message(
+        $state,
+        'success',
+        $fileCount === 1
+            ? 'Datei verarbeitet. Die Warteschlange fährt mit der nächsten Datei fort.'
+            : $successCount . ' Datei(en) verarbeitet. Die Warteschlange fährt fort.'
+    );
+}
+
+function admin_action_finalize_upload_queue(array &$state, array $apiConfig): void
+{
+    if (!api_key_is_configured($apiConfig)) {
+        admin_set_message($state, 'error', 'Bitte zuerst einen gültigen API-Schlüssel hinterlegen.');
+        return;
+    }
+    if (!knowledge_base_is_configured()) {
+        admin_set_message($state, 'error', 'Es wurden noch keine Textabschnitte erzeugt.');
+        return;
+    }
+
+    $regen = admin_regenerate_project_profile_safely(load_project_config(), $apiConfig);
+    if ($regen['ok'] ?? false) {
+        admin_set_message($state, 'success', 'Warteschlange abgeschlossen. Frontend-Vorlagen und Beispielfragen wurden neu erzeugt.');
+        return;
+    }
+
+    admin_set_message($state, 'error', $regen['error'] ?? 'Warteschlange abgeschlossen, aber die Frontend-Konfiguration konnte nicht aktualisiert werden.');
+}
+
 function admin_action_regenerate_profile(array &$state, array $apiConfig, array $project): void
 {
-    $regen = regenerate_project_profile($project, $apiConfig);
+    $regen = admin_regenerate_project_profile_safely($project, $apiConfig);
     if ($regen['ok'] ?? false) {
         admin_set_message($state, 'success', 'Frontend-Konfiguration aus der Wissensbasis neu erzeugt.');
         return;
     }
 
     admin_set_message($state, 'error', $regen['error'] ?? 'Profil konnte nicht regeneriert werden.');
+}
+
+function admin_process_uploaded_document_safely(array $file, array $project, array $apiConfig): array
+{
+    try {
+        return process_uploaded_document($file, $project, $apiConfig);
+    } catch (Throwable $exception) {
+        return [
+            'ok' => false,
+            'error' => 'Technischer Fehler bei der Datei-Verarbeitung: ' . $exception->getMessage(),
+        ];
+    }
+}
+
+function admin_regenerate_project_profile_safely(array $project, array $apiConfig): array
+{
+    try {
+        return regenerate_project_profile($project, $apiConfig);
+    } catch (Throwable $exception) {
+        return [
+            'ok' => false,
+            'error' => 'Technischer Fehler bei der Profil-Aktualisierung: ' . $exception->getMessage(),
+        ];
+    }
 }
 
 function admin_action_delete_chunk(array &$state): void

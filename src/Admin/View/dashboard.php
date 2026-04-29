@@ -276,16 +276,36 @@ function admin_render_knowledge_upload_card(array $uploadResults): void
     ?>
     <div class="card">
         <h2>Wissensbasis erweitern</h2>
-        <p class="muted">Neue Dateien werden in Textabschnitte umgewandelt. Danach werden Schnellfragen, Aufgabenbeispiele und Vorlagen automatisch aus der Wissensbasis neu erzeugt.</p>
-        <form method="post" action="<?= e(admin_section_url('knowledge')) ?>" enctype="multipart/form-data" class="stack" data-working-label="Dateien werden verarbeitet ...">
+        <p class="muted">Neue Dateien werden in Textabschnitte umgewandelt. Mit JavaScript läuft der Upload als Warteschlange Datei für Datei; ohne JavaScript verarbeitet der Server die Mehrfachauswahl klassisch in einem Request.</p>
+        <form method="post" action="<?= e(admin_section_url('knowledge')) ?>" enctype="multipart/form-data" class="stack upload-form" data-upload-queue data-working-label="Dateien werden verarbeitet ...">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="upload_documents">
-            <div>
-                <label>Dateien</label>
-                <input type="file" name="documents[]" multiple accept=".pdf,.txt,.md,.markdown">
+            <div class="upload-dropzone" data-upload-dropzone>
+                <div class="upload-dropzone-copy">
+                    <h3>Dateien hinzufügen</h3>
+                    <p class="muted">PDF, TXT oder Markdown hier hineinziehen oder über den Button auswählen. Große PDFs können mehrere Minuten pro Datei benötigen.</p>
+                </div>
+                <div class="actions">
+                    <label class="btn btn-secondary" for="knowledge-documents">Dateien auswählen</label>
+                    <span class="muted">oder per Drag and Drop ablegen</span>
+                </div>
+                <input class="visually-hidden" id="knowledge-documents" type="file" name="documents[]" data-upload-input multiple accept=".pdf,.txt,.md,.markdown">
+            </div>
+
+            <div class="upload-queue" data-upload-panel hidden>
+                <div class="upload-queue-head">
+                    <div>
+                        <strong>Warteschlange</strong><br>
+                        <span class="muted" data-upload-summary>Keine Dateien ausgewählt.</span>
+                    </div>
+                    <div class="upload-progress" aria-hidden="true">
+                        <span data-upload-progress></span>
+                    </div>
+                </div>
+                <div class="upload-list" data-upload-list></div>
             </div>
             <div class="actions">
-                <button class="btn btn-primary" type="submit">Dateien hochladen und verarbeiten</button>
+                <button class="btn btn-primary" type="submit" data-upload-submit>Warteschlange starten</button>
                 <button class="btn btn-secondary" type="submit" name="action" value="regenerate_profile" data-working-label="Beispielinhalte werden erzeugt ...">Beispielinhalte neu erzeugen</button>
             </div>
         </form>
