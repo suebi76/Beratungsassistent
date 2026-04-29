@@ -164,13 +164,13 @@ function regenerate_project_profile(array $project, array $apiConfig): array
     }
 
     $prompt = build_profile_generation_prompt($project, $chunks);
-    $generation = gemini_generate_text([['text' => $prompt]], $apiConfig, [
+    $generation = model_generate_text([['text' => $prompt]], $apiConfig, [
         'temperature' => 0.3,
         'maxOutputTokens' => 8192,
         'timeout' => 180,
         'retries' => 1,
         'retryDelaySeconds' => 3,
-    ]);
+    ], 'profile_generation');
 
     $profile = null;
     if ($generation['ok'] ?? false) {

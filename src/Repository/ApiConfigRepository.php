@@ -19,10 +19,12 @@ final class ApiConfigRepository
         if (strpos($raw, 'return [') !== false) {
             $data = require $file;
             if (is_array($data)) {
-                return [
+                return array_merge(default_api_config(), [
+                    'provider' => trim((string) ($data['provider'] ?? 'gemini')) ?: 'gemini',
+                    'base_url' => trim((string) ($data['base_url'] ?? 'https://generativelanguage.googleapis.com')) ?: 'https://generativelanguage.googleapis.com',
                     'api_key' => trim((string) ($data['api_key'] ?? '')),
                     'model' => trim((string) ($data['model'] ?? DEFAULT_MODEL_NAME)) ?: DEFAULT_MODEL_NAME,
-                ];
+                ]);
             }
         }
 
@@ -32,8 +34,11 @@ final class ApiConfigRepository
     public function save(string $apiKey, string $model = DEFAULT_MODEL_NAME): void
     {
         ensure_app_dirs();
+        $current = $this->load();
         $content = "<?php\n"
             . "return [\n"
+            . "    'provider' => " . var_export(trim((string) ($current['provider'] ?? 'gemini')) ?: 'gemini', true) . ",\n"
+            . "    'base_url' => " . var_export(trim((string) ($current['base_url'] ?? 'https://generativelanguage.googleapis.com')) ?: 'https://generativelanguage.googleapis.com', true) . ",\n"
             . "    'api_key' => " . var_export(trim($apiKey), true) . ",\n"
             . "    'model' => " . var_export(trim($model) ?: DEFAULT_MODEL_NAME, true) . ",\n"
             . "];\n";

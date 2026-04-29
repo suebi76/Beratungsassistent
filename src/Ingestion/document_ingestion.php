@@ -16,13 +16,13 @@ function process_uploaded_document(array $file, array $project, array $apiConfig
     $parts = build_document_parts_for_gemini($stored['path'], (string) $file['name'], (string) $validation['extension']);
     $parts[] = ['text' => build_chunk_generation_prompt($project, (string) $file['name'], (string) $validation['extension'])];
 
-    $generation = gemini_generate_text($parts, $apiConfig, [
+    $generation = model_generate_text($parts, $apiConfig, [
         'temperature' => 0.2,
         'maxOutputTokens' => 65536,
         'timeout' => 240,
         'retries' => 2,
         'retryDelaySeconds' => 4,
-    ]);
+    ], 'chunk_generation');
 
     if (!($generation['ok'] ?? false)) {
         return [

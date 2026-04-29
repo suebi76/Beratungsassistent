@@ -25,7 +25,12 @@ require_once __DIR__ . '/../src/Config/setup_status.php';
 
 require_once __DIR__ . '/../src/Ingestion/uploads.php';
 require_once __DIR__ . '/../src/Ingestion/chunk_generation.php';
+require_once __DIR__ . '/../src/AI/ProviderCapabilities.php';
+require_once __DIR__ . '/../src/AI/ModelRequest.php';
+require_once __DIR__ . '/../src/AI/ModelProvider.php';
 require_once __DIR__ . '/../src/AI/gemini_client.php';
+require_once __DIR__ . '/../src/AI/GeminiProvider.php';
+require_once __DIR__ . '/../src/AI/ModelGateway.php';
 require_once __DIR__ . '/../src/Ingestion/document_ingestion.php';
 
 require_once __DIR__ . '/../src/Profile/profile_generation.php';

@@ -61,8 +61,12 @@ try {
     test_assert(project_profile_is_configured(load_project_config()), 'Projektprofil sollte als konfiguriert gelten.');
 
     test_assert(!api_key_is_configured(load_api_config()), 'Leere API-Konfiguration sollte nicht konfiguriert sein.');
+    test_assert(model_gateway(load_api_config())->providerId() === 'gemini', 'Standardanbieter sollte Gemini sein.');
+    test_assert(model_gateway(load_api_config())->capabilities()['streaming'] === true, 'Gemini-Provider sollte Streaming melden.');
+    test_assert(!(model_generate_text([['text' => 'Test']], load_api_config())['ok'] ?? false), 'Leere API-Konfiguration darf keinen Modellaufruf erlauben.');
     test_assert(save_api_config('test-api-key-12345', 'test-model'), 'API-Konfiguration konnte nicht gespeichert werden.');
     $apiConfig = load_api_config();
+    test_assert($apiConfig['provider'] === 'gemini', 'Provider wurde nicht geladen.');
     test_assert($apiConfig['api_key'] === 'test-api-key-12345', 'API-Schlüssel wurde nicht geladen.');
     test_assert($apiConfig['model'] === 'test-model', 'Modell wurde nicht geladen.');
     test_assert(api_key_is_configured($apiConfig), 'API-Konfiguration sollte als konfiguriert gelten.');

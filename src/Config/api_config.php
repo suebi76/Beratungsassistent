@@ -4,6 +4,8 @@ declare(strict_types=1);
 function default_api_config(): array
 {
     return [
+        'provider' => 'gemini',
+        'base_url' => 'https://generativelanguage.googleapis.com',
         'api_key' => '',
         'model' => DEFAULT_MODEL_NAME,
     ];
