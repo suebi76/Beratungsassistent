@@ -10,6 +10,22 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_response(['error' => 'Method Not Allowed'], 405);
 }
 
+$contentLength = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
+if ($contentLength > MAX_PROXY_BODY_BYTES) {
+    json_response(['error' => 'Anfrage zu groß. Bitte Chatverlauf kürzen und erneut versuchen.'], 413);
+}
+
+$rateLimit = check_rate_limit(
+    'proxy',
+    request_client_ip(),
+    PROXY_RATE_LIMIT_MAX_REQUESTS,
+    PROXY_RATE_LIMIT_WINDOW_SECONDS
+);
+if (!($rateLimit['allowed'] ?? true)) {
+    header('Retry-After: ' . (int) ($rateLimit['retry_after'] ?? PROXY_RATE_LIMIT_WINDOW_SECONDS));
+    json_response(['error' => 'Zu viele Anfragen. Bitte kurz warten und erneut versuchen.'], 429);
+}
+
 $apiConfig = load_api_config();
 $project = load_project_config();
 
@@ -21,6 +37,9 @@ $rawBody = file_get_contents('php://input');
 if (!is_string($rawBody) || trim($rawBody) === '') {
     json_response(['error' => 'Leere Anfrage.'], 400);
 }
+if (strlen($rawBody) > MAX_PROXY_BODY_BYTES) {
+    json_response(['error' => 'Anfrage zu groß. Bitte Chatverlauf kürzen und erneut versuchen.'], 413);
+}
 
 $payload = json_decode($rawBody, true);
 if (!is_array($payload)) {
@@ -28,7 +47,18 @@ if (!is_array($payload)) {
 }
 
 $messages = is_array($payload['messages'] ?? null) ? $payload['messages'] : [];
+$messages = array_slice($messages, -MAX_PROXY_MESSAGES);
 $query = trim((string) ($payload['query'] ?? ''));
+
+foreach ($messages as $message) {
+    if (!is_array($message)) {
+        continue;
+    }
+    $text = (string) ($message['text'] ?? '');
+    if (mb_strlen($text, 'UTF-8') > MAX_PROXY_MESSAGE_CHARS) {
+        json_response(['error' => 'Chatverlauf ist zu lang. Bitte neuen Chat starten oder Verlauf kürzen.'], 413);
+    }
+}
 
 if ($query === '') {
     foreach (array_reverse($messages) as $message) {
@@ -41,6 +71,9 @@ if ($query === '') {
 
 if ($query === '') {
     json_response(['error' => 'Keine Nutzerfrage gefunden.'], 400);
+}
+if (mb_strlen($query, 'UTF-8') > MAX_PROXY_QUERY_CHARS) {
+    json_response(['error' => 'Die Frage ist zu lang. Bitte kuerzer formulieren.'], 413);
 }
 
 $retrievedChunks = retrieve_relevant_chunks($query);
@@ -65,14 +98,14 @@ $geminiPayload = json_encode([
 
 $url = 'https://generativelanguage.googleapis.com/v1beta/models/'
     . rawurlencode((string) ($apiConfig['model'] ?? DEFAULT_MODEL_NAME))
-    . ':streamGenerateContent?key=' . rawurlencode((string) $apiConfig['api_key']) . '&alt=sse';
+    . ':streamGenerateContent?alt=sse';
 
 $ch = curl_init($url);
 curl_setopt_array($ch, [
     CURLOPT_POST => true,
     CURLOPT_POSTFIELDS => $geminiPayload,
     CURLOPT_RETURNTRANSFER => false,
-    CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+    CURLOPT_HTTPHEADER => gemini_api_headers($apiConfig),
     CURLOPT_TIMEOUT => 120,
     CURLOPT_WRITEFUNCTION => static function ($ch, $data) {
         echo $data;

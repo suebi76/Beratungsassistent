@@ -8,7 +8,7 @@ Bei einer Nutzerfrage passiert serverseitig Folgendes:
 
 1. Die Frage wird in Suchbegriffe zerlegt.
 2. Titel, Tags, Quelle und Text der vorhandenen Chunks werden gewichtet durchsucht.
-3. Die besten Treffer werden an den System-Prompt angehängt.
+3. Die besten Treffer werden an die Systemanweisung angehängt.
 4. Das Modell beantwortet die Frage auf Basis dieser Treffer.
 
 ## Chunk-Format
@@ -48,7 +48,7 @@ Die Chunk-Erzeugung erfolgt im Admin-Bereich über Gemini:
 Die Wissensbasis bildet ein echtes RAG-Setup, aber ohne Embeddings:
 
 - Retrieval: gewichtete Keyword-Suche über lokale Chunk-Dateien
-- Augmentation: die gefundenen Chunks werden in den System-Prompt eingebettet
+- Augmentation: die gefundenen Chunks werden in die Systemanweisung eingebettet
 - Generation: Gemini erzeugt die Antwort auf Basis der Nutzerfrage und der eingebetteten Chunks
 
 Das bedeutet:
