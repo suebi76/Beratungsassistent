@@ -33,7 +33,7 @@ final class GeminiProvider implements ModelProvider
         return gemini_generate_text($request->parts(), $this->apiConfig, $request->options());
     }
 
-    public function streamText(ModelRequest $request, callable $onData): array
+    public function streamText(ModelRequest $request, callable $onDelta): array
     {
         if (!api_key_is_configured($this->apiConfig)) {
             return ['ok' => false, 'error' => 'Kein gültiger Gemini-API-Schlüssel konfiguriert.'];
@@ -58,6 +58,7 @@ final class GeminiProvider implements ModelProvider
             . rawurlencode((string) ($this->apiConfig['model'] ?? DEFAULT_MODEL_NAME))
             . ':streamGenerateContent?alt=sse';
 
+        $buffer = '';
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_POST => true,
@@ -65,8 +66,33 @@ final class GeminiProvider implements ModelProvider
             CURLOPT_RETURNTRANSFER => false,
             CURLOPT_HTTPHEADER => gemini_api_headers($this->apiConfig),
             CURLOPT_TIMEOUT => $request->options()['timeout'] ?? 120,
-            CURLOPT_WRITEFUNCTION => static function ($ch, $data) use ($onData) {
-                $onData($data);
+            CURLOPT_WRITEFUNCTION => static function ($ch, $data) use ($onDelta, &$buffer) {
+                $buffer .= $data;
+                $lines = explode("\n", $buffer);
+                $buffer = array_pop($lines) ?: '';
+
+                foreach ($lines as $line) {
+                    $line = trim($line);
+                    if (!str_starts_with($line, 'data:')) {
+                        continue;
+                    }
+
+                    $payload = trim(substr($line, 5));
+                    if ($payload === '' || $payload === '[DONE]') {
+                        continue;
+                    }
+
+                    $decoded = json_decode($payload, true);
+                    if (!is_array($decoded)) {
+                        continue;
+                    }
+
+                    $text = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? '';
+                    if (is_string($text) && $text !== '') {
+                        $onDelta($text);
+                    }
+                }
+
                 return strlen($data);
             },
         ]);

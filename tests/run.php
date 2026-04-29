@@ -64,6 +64,8 @@ try {
     test_assert(model_gateway(load_api_config())->providerId() === 'gemini', 'Standardanbieter sollte Gemini sein.');
     test_assert(model_gateway(load_api_config())->capabilities()['streaming'] === true, 'Gemini-Provider sollte Streaming melden.');
     test_assert(!(model_generate_text([['text' => 'Test']], load_api_config())['ok'] ?? false), 'Leere API-Konfiguration darf keinen Modellaufruf erlauben.');
+    $streamResult = model_stream_chat([], '', load_api_config(), static function (string $delta): void {});
+    test_assert(!($streamResult['ok'] ?? false), 'Leere API-Konfiguration darf kein Streaming erlauben.');
     test_assert(save_api_config('test-api-key-12345', 'test-model'), 'API-Konfiguration konnte nicht gespeichert werden.');
     $apiConfig = load_api_config();
     test_assert($apiConfig['provider'] === 'gemini', 'Provider wurde nicht geladen.');

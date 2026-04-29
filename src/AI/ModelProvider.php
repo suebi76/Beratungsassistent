@@ -11,7 +11,7 @@ interface ModelProvider
 
     public function generateText(ModelRequest $request): array;
 
-    public function streamText(ModelRequest $request, callable $onData): array;
+    public function streamText(ModelRequest $request, callable $onDelta): array;
 
     public function testConnection(): array;
 }

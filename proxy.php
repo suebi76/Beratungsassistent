@@ -93,8 +93,8 @@ $streamResult = model_stream_chat(
     $contents,
     $systemPrompt,
     $apiConfig,
-    static function (string $data): void {
-        echo $data;
+    static function (string $text): void {
+        echo 'data: ' . json_encode(['text' => $text], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n\n";
         if (ob_get_level()) {
             ob_flush();
         }
@@ -105,5 +105,8 @@ $streamResult = model_stream_chat(
 
 if (!($streamResult['ok'] ?? false)) {
     echo 'data: ' . json_encode(['error' => $streamResult['error'] ?? 'Streaming fehlgeschlagen.'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n\n";
+    flush();
+} else {
+    echo "data: [DONE]\n\n";
     flush();
 }

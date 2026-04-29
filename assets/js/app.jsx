@@ -122,7 +122,7 @@
                             throw new Error(data.error);
                         }
 
-                        const chunk = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                        const chunk = data.text || data.candidates?.[0]?.content?.parts?.[0]?.text || "";
                         if (!chunk) continue;
                         fullText += chunk;
                         setMessages((current) => {

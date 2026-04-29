@@ -27,9 +27,9 @@ final class ModelGateway
         return $this->provider->generateText(ModelRequest::textGeneration($parts, $options, $purpose));
     }
 
-    public function streamChat(array $contents, string $systemInstruction, callable $onData, array $options = []): array
+    public function streamChat(array $contents, string $systemInstruction, callable $onDelta, array $options = []): array
     {
-        return $this->provider->streamText(ModelRequest::chatStream($contents, $systemInstruction, $options), $onData);
+        return $this->provider->streamText(ModelRequest::chatStream($contents, $systemInstruction, $options), $onDelta);
     }
 
     public function testConnection(): array
@@ -58,7 +58,7 @@ function model_generate_text(array $parts, array $apiConfig, array $options = []
     return model_gateway($apiConfig)->generateText($parts, $options, $purpose);
 }
 
-function model_stream_chat(array $contents, string $systemInstruction, array $apiConfig, callable $onData, array $options = []): array
+function model_stream_chat(array $contents, string $systemInstruction, array $apiConfig, callable $onDelta, array $options = []): array
 {
-    return model_gateway($apiConfig)->streamChat($contents, $systemInstruction, $onData, $options);
+    return model_gateway($apiConfig)->streamChat($contents, $systemInstruction, $onDelta, $options);
 }
