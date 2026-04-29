@@ -61,6 +61,28 @@ try {
     test_assert(load_project_config()['topic'] === 'Geändertes Testthema', 'Projektkonfiguration wurde nach Überschreiben nicht korrekt geladen.');
     test_assert(project_profile_is_configured(load_project_config()), 'Projektprofil sollte als konfiguriert gelten.');
 
+    $_POST = [
+        'quick_questions' => "Was ist wichtig?\nWas ist wichtig?\nWelche Fristen gelten?",
+        'task_examples' => "Erstelle eine Checkliste.\nFasse die Regeln zusammen.",
+        'template_title' => ['Beratung vorbereiten', ''],
+        'template_description' => ['Hilfen für die Vorbereitung.', ''],
+        'template_option_label' => [
+            ['Checkliste', ''],
+            [''],
+        ],
+        'template_option_prompt' => [
+            ['Erstelle eine kurze Checkliste auf Basis der Wissensbasis.', ''],
+            [''],
+        ],
+    ];
+    $state = [];
+    admin_action_save_frontend_content($state, load_project_config());
+    $frontendProject = load_project_config();
+    test_assert($state['messageType'] === 'success', 'Frontend-Inhalte sollten gespeichert werden.');
+    test_assert(count($frontendProject['frontend']['quick_questions']) === 2, 'Schnellfragen sollten bereinigt und dedupliziert werden.');
+    test_assert($frontendProject['frontend']['templates'][0]['options'][0]['label'] === 'Checkliste', 'Vorlagenoption wurde nicht korrekt gespeichert.');
+    $_POST = [];
+
     test_assert(!api_key_is_configured(load_api_config()), 'Leere API-Konfiguration sollte nicht konfiguriert sein.');
     test_assert(model_gateway(load_api_config())->providerId() === 'gemini', 'Standardanbieter sollte Gemini sein.');
     test_assert(model_gateway(load_api_config())->capabilities()['streaming'] === true, 'Gemini-Provider sollte Streaming melden.');

@@ -49,6 +49,9 @@ function admin_handle_request(): array
         case 'save_project':
             admin_action_save_project($state, $project);
             break;
+        case 'save_frontend_content':
+            admin_action_save_frontend_content($state, $project);
+            break;
         case 'upload_documents':
             admin_action_upload_documents($state, $apiConfig, $project);
             break;
@@ -217,6 +220,19 @@ function admin_action_save_project(array &$state, array $project): void
     }
 
     admin_set_message($state, 'success', 'Projektprofil gespeichert. Jetzt Dokumente hochladen.');
+}
+
+function admin_action_save_frontend_content(array &$state, array $project): void
+{
+    $frontend = frontend_content_from_form($_POST);
+    $project['frontend'] = merge_project_config($project['frontend'] ?? [], $frontend);
+
+    if (!save_project_config($project)) {
+        admin_set_message($state, 'error', 'Schnellfragen und Vorlagen konnten nicht gespeichert werden.');
+        return;
+    }
+
+    admin_set_message($state, 'success', 'Schnellfragen und Vorlagen gespeichert.');
 }
 
 function admin_action_upload_documents(array &$state, array $apiConfig, array $project): void

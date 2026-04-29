@@ -53,10 +53,15 @@ function admin_render_styles(): void
         .dropzone p { margin: 0; }
         .result-list { display: grid; gap: 12px; margin-top: 14px; }
         .result-item { border-radius: 16px; padding: 14px; background: #f8fafc; border: 1px solid #e6ebf0; }
+        .template-admin { display: grid; gap: 18px; }
+        .template-section { display: grid; gap: 14px; border: 1px solid #e6ebf0; border-radius: 18px; padding: 18px; background: #fbfcfe; }
+        .template-section-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+        .template-option { display: grid; grid-template-columns: minmax(180px, .35fr) minmax(260px, 1fr); gap: 14px; align-items: start; }
         details { border-top: 1px solid #edf1f6; padding-top: 16px; margin-top: 18px; }
         summary { cursor: pointer; font-weight: 700; color: #18212b; }
         @media (max-width: 900px) {
             .grid.two { grid-template-columns: 1fr; }
+            .template-option { grid-template-columns: 1fr; }
             .topbar { flex-direction: column; align-items: flex-start; }
         }
     </style>

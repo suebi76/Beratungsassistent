@@ -18,6 +18,8 @@ require_once __DIR__ . '/../src/Repository/ApiConfigRepository.php';
 require_once __DIR__ . '/../src/Config/api_config.php';
 require_once __DIR__ . '/../src/Config/project_config.php';
 
+require_once __DIR__ . '/../src/Project/frontend_content.php';
+
 require_once __DIR__ . '/../src/Knowledge/chunks.php';
 require_once __DIR__ . '/../src/Knowledge/retrieval.php';
 

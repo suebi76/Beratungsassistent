@@ -16,6 +16,7 @@ function admin_render_dashboard(array $model): void
         </div>
     </div>
 
+    <?php admin_render_content_curation_card($model['project']); ?>
     <?php admin_render_chunks_table($model['chunks']); ?>
     <?php
 }
@@ -101,6 +102,82 @@ function admin_render_live_config_card(array $publicConfig, array $chunks): void
             <div><strong>Vorlagen</strong><br><span class="muted"><?= e((string) count($publicConfig['frontend']['templates'])) ?> Sektionen</span></div>
             <div><strong>Textabschnitte</strong><br><span class="muted"><?= e((string) count($chunks)) ?> Dateien im RAG-Verzeichnis</span></div>
         </div>
+    </div>
+    <?php
+}
+
+function admin_render_content_curation_card(array $project): void
+{
+    $frontend = is_array($project['frontend'] ?? null) ? $project['frontend'] : [];
+    $quickQuestionSource = is_array($frontend['quick_questions'] ?? null) ? $frontend['quick_questions'] : [];
+    $taskExampleSource = is_array($frontend['task_examples'] ?? null) ? $frontend['task_examples'] : [];
+    $quickQuestions = array_values(array_filter(array_map('strval', $quickQuestionSource)));
+    $taskExamples = array_values(array_filter(array_map('strval', $taskExampleSource)));
+    $templates = array_values(is_array($frontend['templates'] ?? null) ? $frontend['templates'] : []);
+    $sectionCount = min(max(count($templates) + 1, 4), FRONTEND_MAX_TEMPLATE_SECTIONS);
+    ?>
+    <div class="card">
+        <h2>Schnellfragen und Vorlagen kuratieren</h2>
+        <p class="muted">Diese Inhalte werden öffentlich im Assistenten angezeigt. Automatisch erzeugte Vorschläge können hier fachlich bereinigt, umsortiert oder ersetzt werden.</p>
+        <form method="post" class="stack">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="save_frontend_content">
+            <div class="grid two">
+                <div>
+                    <label>Schnellfragen</label>
+                    <textarea name="quick_questions" rows="8" placeholder="Eine Frage pro Zeile"><?= e(implode("\n", $quickQuestions)) ?></textarea>
+                    <p class="muted" style="margin:6px 0 0">Maximal <?= FRONTEND_MAX_QUICK_QUESTIONS ?> Einträge; doppelte Zeilen werden entfernt.</p>
+                </div>
+                <div>
+                    <label>Aufgabenbeispiele</label>
+                    <textarea name="task_examples" rows="8" placeholder="Ein Arbeitsauftrag pro Zeile"><?= e(implode("\n", $taskExamples)) ?></textarea>
+                    <p class="muted" style="margin:6px 0 0">Diese Beispiele können später ebenfalls im Frontend hervorgehoben werden.</p>
+                </div>
+            </div>
+
+            <div class="template-admin">
+                <?php for ($sectionIndex = 0; $sectionIndex < $sectionCount; $sectionIndex++): ?>
+                    <?php
+                    $section = is_array($templates[$sectionIndex] ?? null) ? $templates[$sectionIndex] : [];
+                    $options = array_values(is_array($section['options'] ?? null) ? $section['options'] : []);
+                    $optionCount = min(max(count($options) + 1, 3), FRONTEND_MAX_TEMPLATE_OPTIONS);
+                    ?>
+                    <div class="template-section">
+                        <div class="template-section-head">
+                            <h3>Vorlagen-Sektion <?= e((string) ($sectionIndex + 1)) ?></h3>
+                            <span class="muted">Leer lassen, um eine Sektion nicht zu speichern.</span>
+                        </div>
+                        <div class="grid two">
+                            <div>
+                                <label>Titel</label>
+                                <input type="text" name="template_title[]" value="<?= e((string) ($section['title'] ?? '')) ?>">
+                            </div>
+                            <div>
+                                <label>Beschreibung</label>
+                                <input type="text" name="template_description[]" value="<?= e((string) ($section['description'] ?? '')) ?>">
+                            </div>
+                        </div>
+                        <?php for ($optionIndex = 0; $optionIndex < $optionCount; $optionIndex++): ?>
+                            <?php $option = is_array($options[$optionIndex] ?? null) ? $options[$optionIndex] : []; ?>
+                            <div class="template-option">
+                                <div>
+                                    <label>Button-Text <?= e((string) ($optionIndex + 1)) ?></label>
+                                    <input type="text" name="template_option_label[<?= e((string) $sectionIndex) ?>][]" value="<?= e((string) ($option['label'] ?? '')) ?>">
+                                </div>
+                                <div>
+                                    <label>Prompt <?= e((string) ($optionIndex + 1)) ?></label>
+                                    <textarea name="template_option_prompt[<?= e((string) $sectionIndex) ?>][]" rows="3"><?= e((string) ($option['prompt'] ?? '')) ?></textarea>
+                                </div>
+                            </div>
+                        <?php endfor; ?>
+                    </div>
+                <?php endfor; ?>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-primary" type="submit">Schnellfragen und Vorlagen speichern</button>
+            </div>
+        </form>
     </div>
     <?php
 }
