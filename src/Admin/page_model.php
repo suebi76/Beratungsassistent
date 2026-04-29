@@ -9,6 +9,8 @@ function admin_build_page_model(array $requestState): array
     $chunks = get_chunks();
     $publicConfig = public_project_config($project);
     $gateway = model_gateway($apiConfig);
+    $sections = admin_sections();
+    $activeSection = admin_normalize_section((string) ($_GET['section'] ?? 'overview'));
 
     return [
         'apiConfig' => $apiConfig,
@@ -24,6 +26,8 @@ function admin_build_page_model(array $requestState): array
         'uploadResults' => is_array($requestState['uploadResults'] ?? null) ? $requestState['uploadResults'] : [],
         'setupStep' => $setupStep,
         'chunks' => $chunks,
+        'sections' => $sections,
+        'activeSection' => $activeSection,
         'publicConfig' => $publicConfig,
         'wizardActive' => is_admin_authenticated() && $setupStep !== 'done',
         'apiKeyConfigured' => api_key_is_configured($apiConfig),
@@ -37,4 +41,60 @@ function admin_build_page_model(array $requestState): array
             'documents' => '4. Dateien',
         ],
     ];
+}
+
+function admin_sections(): array
+{
+    return [
+        'overview' => [
+            'label' => 'Überblick',
+            'description' => 'Status, nächste sinnvolle Schritte und die öffentliche Live-Konfiguration auf einen Blick.',
+            'hint' => 'Status',
+        ],
+        'project' => [
+            'label' => 'Projekt',
+            'description' => 'Grunddaten des Assistenten: Titel, Themenfeld, Zielgruppe und fachlicher Rahmen.',
+            'hint' => 'Profil',
+        ],
+        'contents' => [
+            'label' => 'Inhalte',
+            'description' => 'Schnellfragen, Aufgabenbeispiele und Vorlagen für die Nutzeroberfläche kuratieren.',
+            'hint' => 'Frontend',
+        ],
+        'knowledge' => [
+            'label' => 'Wissensbasis',
+            'description' => 'Fachdokumente hochladen und daraus Textabschnitte für die Antwortsuche erzeugen.',
+            'hint' => 'Upload',
+        ],
+        'chunks' => [
+            'label' => 'Textabschnitte',
+            'description' => 'Erzeugte Wissensbasis-Abschnitte prüfen, einzeln oder gesammelt bereinigen.',
+            'hint' => 'Abschnitte',
+        ],
+        'quality' => [
+            'label' => 'Qualitätstest',
+            'description' => 'Vorbereiteter Bereich für spätere Prüffragen, Testläufe und Antwortbewertung.',
+            'hint' => 'Prüfung',
+        ],
+        'provider' => [
+            'label' => 'KI-Anbieter',
+            'description' => 'Modellanbieter, Base-URL, Modellname, Token und Verbindungstest verwalten.',
+            'hint' => 'Modelle',
+        ],
+        'security' => [
+            'label' => 'Datenschutz & Sicherheit',
+            'description' => 'Schlüsselstatus, Datenverzeichnis und Admin-Passwort kontrollieren.',
+            'hint' => 'Schutz',
+        ],
+        'operations' => [
+            'label' => 'Betrieb',
+            'description' => 'Technischer Laufzeitstatus und Betriebsnotizen für Installation und Wartung.',
+            'hint' => 'System',
+        ],
+    ];
+}
+
+function admin_normalize_section(string $section): string
+{
+    return array_key_exists($section, admin_sections()) ? $section : 'overview';
 }

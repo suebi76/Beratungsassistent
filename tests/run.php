@@ -134,6 +134,16 @@ try {
     test_assert(model_gateway($openAiConfig)->providerId() === 'openai_compatible', 'OpenAI-kompatibler Provider wurde nicht ausgewählt.');
     test_assert(model_gateway($openAiConfig)->capabilities()['pdf_input'] === false, 'OpenAI-kompatibler Provider sollte PDF-Direktinput nicht melden.');
 
+    file_put_contents(chunks_dir() . '/eins.md', build_chunk_markdown(['title' => 'Eins'], 'Inhalt eins'));
+    file_put_contents(chunks_dir() . '/zwei.md', build_chunk_markdown(['title' => 'Zwei'], 'Inhalt zwei'));
+    $_POST = ['files' => ['eins.md', 'zwei.md']];
+    $state = [];
+    admin_action_delete_chunks($state);
+    test_assert($state['messageType'] === 'success', 'Mehrfachlöschung von Textabschnitten sollte erfolgreich sein.');
+    test_assert(!file_exists(chunks_dir() . '/eins.md'), 'Erster Textabschnitt wurde nicht gelöscht.');
+    test_assert(!file_exists(chunks_dir() . '/zwei.md'), 'Zweiter Textabschnitt wurde nicht gelöscht.');
+    $_POST = [];
+
     echo "All tests passed.\n";
 } finally {
     remove_tree($testRoot);

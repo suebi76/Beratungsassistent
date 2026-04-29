@@ -4,21 +4,241 @@ declare(strict_types=1);
 function admin_render_dashboard(array $model): void
 {
     ?>
-    <div class="grid two">
-        <div class="grid">
-            <?php admin_render_project_profile_card($model['project']); ?>
-            <?php admin_render_knowledge_upload_card($model['uploadResults']); ?>
-        </div>
+    <div class="admin-workspace">
+        <aside class="admin-sidebar">
+            <?php admin_render_section_nav($model); ?>
+        </aside>
+        <main class="admin-content" id="admin-main">
+            <?php admin_render_mobile_section_nav($model); ?>
+            <?php admin_render_active_section($model); ?>
+        </main>
+    </div>
+    <?php
+}
 
-        <div class="grid">
-            <?php admin_render_live_config_card($model['publicConfig'], $model['chunks']); ?>
-            <?php admin_render_api_security_card($model); ?>
+function admin_render_active_section(array $model): void
+{
+    $activeSection = (string) ($model['activeSection'] ?? 'overview');
+    $section = $model['sections'][$activeSection] ?? $model['sections']['overview'];
+
+    admin_render_section_header((string) $section['label'], (string) $section['description']);
+
+    switch ($activeSection) {
+        case 'project':
+            admin_render_project_profile_card($model['project']);
+            break;
+        case 'contents':
+            admin_render_content_curation_card($model['project']);
+            break;
+        case 'knowledge':
+            ?>
+            <div class="grid two">
+                <?php admin_render_knowledge_upload_card($model['uploadResults']); ?>
+                <?php admin_render_document_overview_card($model['project'], $model['chunks']); ?>
+            </div>
+            <?php
+            break;
+        case 'chunks':
+            admin_render_chunks_table($model['chunks']);
+            break;
+        case 'quality':
+            admin_render_quality_section($model);
+            break;
+        case 'provider':
+            admin_render_provider_card($model);
+            break;
+        case 'security':
+            admin_render_security_status_card($model);
+            break;
+        case 'operations':
+            admin_render_operations_card($model);
+            break;
+        case 'overview':
+        default:
+            admin_render_overview_section($model);
+            break;
+    }
+}
+
+function admin_render_overview_section(array $model): void
+{
+    $project = $model['project'];
+    $chunks = $model['chunks'];
+    $documentCount = admin_document_count($project);
+    $frontend = is_array($model['publicConfig']['frontend'] ?? null) ? $model['publicConfig']['frontend'] : [];
+    ?>
+    <div class="metric-grid">
+        <div class="metric-card">
+            <span class="metric-label">Projektprofil</span>
+            <strong><?= project_profile_is_configured($project) ? 'vollständig' : 'offen' ?></strong>
+            <span class="muted"><?= e((string) ($project['title'] ?: 'Noch kein Titel')) ?></span>
+        </div>
+        <div class="metric-card">
+            <span class="metric-label">Wissensbasis</span>
+            <strong><?= e((string) count($chunks)) ?></strong>
+            <span class="muted">Textabschnitte aus <?= e((string) $documentCount) ?> Datei(en)</span>
+        </div>
+        <div class="metric-card">
+            <span class="metric-label">KI-Anbieter</span>
+            <strong><?= e((string) $model['modelProvider']['label']) ?></strong>
+            <span class="muted"><?= $model['apiKeyConfigured'] ? 'konfiguriert' : 'nicht vollständig konfiguriert' ?></span>
+        </div>
+        <div class="metric-card">
+            <span class="metric-label">Frontend-Inhalte</span>
+            <strong><?= e((string) count($frontend['quick_questions'] ?? [])) ?></strong>
+            <span class="muted">Schnellfragen, <?= e((string) count($frontend['templates'] ?? [])) ?> Vorlagen-Sektionen</span>
         </div>
     </div>
 
-    <?php admin_render_content_curation_card($model['project']); ?>
-    <?php admin_render_chunks_table($model['chunks']); ?>
+    <div class="grid two">
+        <?php admin_render_next_steps_card($model); ?>
+        <?php admin_render_live_config_card($model['publicConfig'], $chunks); ?>
+    </div>
     <?php
+}
+
+function admin_render_next_steps_card(array $model): void
+{
+    $project = $model['project'];
+    $chunks = $model['chunks'];
+    $steps = [];
+    if (!$model['apiKeyConfigured']) {
+        $steps[] = ['KI-Anbieter konfigurieren', 'Ohne erreichbaren Anbieter können Uploads und Antworttests nicht zuverlässig laufen.', 'provider'];
+    }
+    if (!project_profile_is_configured($project)) {
+        $steps[] = ['Projektprofil vervollständigen', 'Titel und Themenfeld steuern die fachliche Rolle des Assistenten.', 'project'];
+    }
+    if ($chunks === []) {
+        $steps[] = ['Wissensbasis füllen', 'Laden Sie die ersten Dokumente hoch, damit Antworten belegbar werden.', 'knowledge'];
+    }
+    if ($steps === []) {
+        $steps[] = ['Inhalte prüfen', 'Schnellfragen, Aufgabenbeispiele und Vorlagen fachlich bereinigen.', 'contents'];
+        $steps[] = ['Qualitätstest vorbereiten', 'Prüffragen sammeln, damit Antworten später reproduzierbar getestet werden können.', 'quality'];
+    }
+    ?>
+    <div class="card">
+        <h2>Nächste Schritte</h2>
+        <p class="muted">Die Liste ist bewusst kurz gehalten, damit der Admin-Bereich nicht überlädt.</p>
+        <div class="task-list">
+            <?php foreach ($steps as $step): ?>
+                <a class="task-item" href="<?= e(admin_section_url($step[2])) ?>">
+                    <strong><?= e($step[0]) ?></strong>
+                    <span><?= e($step[1]) ?></span>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php
+}
+
+function admin_render_document_overview_card(array $project, array $chunks): void
+{
+    $documents = array_values(is_array($project['documents'] ?? null) ? $project['documents'] : []);
+    ?>
+    <div class="card">
+        <h2>Dokumentenstatus</h2>
+        <p class="muted">Diese Übersicht bleibt kompakt. Die erzeugten Textabschnitte liegen im eigenen Bereich.</p>
+        <div class="stack">
+            <div>
+                <strong><?= e((string) count($documents)) ?> Datei(en)</strong><br>
+                <span class="muted"><?= e((string) count($chunks)) ?> Textabschnitte erzeugt</span>
+            </div>
+            <?php if ($documents === []): ?>
+                <div class="empty-state">
+                    <strong>Noch keine Dokumente registriert.</strong>
+                    <p class="muted">Nach einem Upload wird die Wissensbasis automatisch erweitert.</p>
+                </div>
+            <?php else: ?>
+                <div class="document-list">
+                    <?php foreach (array_slice($documents, -6) as $document): ?>
+                        <div class="document-item">
+                            <strong><?= e((string) ($document['original_name'] ?? 'Unbekannte Datei')) ?></strong>
+                            <span class="muted"><?= e((string) ($document['uploaded_at'] ?? '')) ?></span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php
+}
+
+function admin_render_quality_section(array $model): void
+{
+    ?>
+    <div class="card">
+        <h2>Qualitätstest vorbereiten</h2>
+        <p class="muted">Dieser Bereich ist als eigener Arbeitsbereich angelegt, damit spätere Testläufe nicht zwischen Uploads, Vorlagen und API-Konfiguration untergehen.</p>
+        <div class="empty-state">
+            <strong>Geplante nächste Ausbaustufe</strong>
+            <p class="muted">Sinnvoll sind Prüffragen, erwartete Kernaussagen, Quellenkontrolle, Antwortbewertung und ein Export für fachliche Abnahme. Bis dahin kann der Verbindungstest im Bereich KI-Anbieter genutzt werden.</p>
+            <a class="btn btn-secondary" href="<?= e(admin_section_url('provider')) ?>">KI-Verbindung testen</a>
+        </div>
+    </div>
+    <?php
+}
+
+function admin_render_security_status_card(array $model): void
+{
+    ?>
+    <div class="grid two">
+        <div class="card">
+            <h2>Datenschutz und Schlüsselstatus</h2>
+            <div class="stack">
+                <div>
+                    <strong>API-Schlüssel</strong><br>
+                    <span class="muted"><?= $model['apiKeyConfigured'] ? 'Ein Schlüssel oder lokaler Endpunkt ist konfiguriert. Der gespeicherte Wert wird nicht im HTML ausgegeben.' : 'Noch kein vollständiger Anbieter konfiguriert.' ?></span>
+                </div>
+                <div>
+                    <strong>Datenverzeichnis</strong><br>
+                    <span class="muted"><?= e($model['dataRootStatus']) ?></span>
+                </div>
+                <div>
+                    <strong>Empfehlung für produktive Behördeninstallationen</strong><br>
+                    <span class="muted">Laufzeitdaten außerhalb des Webroots speichern, Serververzeichnis gegen direkten Zugriff sperren und nur notwendige Modellanbieter aktivieren.</span>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Admin-Passwort ändern</h2>
+            <p class="muted">Nach Änderung wird die aktuelle Sitzung beendet und eine neue Anmeldung verlangt.</p>
+            <form method="post" action="<?= e(admin_section_url('security')) ?>" class="stack" data-working-label="Passwort wird aktualisiert ...">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="reset_password">
+                <div>
+                    <label>Neues Passwort</label>
+                    <input type="password" name="pw1" autocomplete="new-password">
+                </div>
+                <div>
+                    <label>Passwort wiederholen</label>
+                    <input type="password" name="pw2" autocomplete="new-password">
+                </div>
+                <button class="btn btn-secondary" type="submit">Passwort aktualisieren</button>
+            </form>
+        </div>
+    </div>
+    <?php
+}
+
+function admin_render_operations_card(array $model): void
+{
+    ?>
+    <div class="card">
+        <h2>Betrieb</h2>
+        <p class="muted">Technischer Status für Installation, Wartung und spätere Übergabe an IT-Verantwortliche.</p>
+        <div class="definition-grid">
+            <div><strong>PHP-Version</strong><span><?= e(PHP_VERSION) ?></span></div>
+            <div><strong>Datenverzeichnis</strong><span><?= e($model['dataRootStatus']) ?></span></div>
+            <div><strong>Textabschnitte</strong><span><?= e((string) count($model['chunks'])) ?></span></div>
+            <div><strong>Anbieter</strong><span><?= e((string) $model['modelProvider']['label']) ?></span></div>
+        </div>
+    </div>
+    <?php
+}
+
+function admin_document_count(array $project): int
+{
+    return count(is_array($project['documents'] ?? null) ? $project['documents'] : []);
 }
 
 function admin_render_project_profile_card(array $project): void
@@ -27,7 +247,7 @@ function admin_render_project_profile_card(array $project): void
     <div class="card">
         <h2>Projektprofil</h2>
         <p class="muted">Diese Angaben steuern Titel, Themenrahmen, Begrüßung und die serverseitige Systemanweisung.</p>
-        <form method="post" class="stack">
+        <form method="post" action="<?= e(admin_section_url('project')) ?>" class="stack" data-working-label="Projektprofil wird gespeichert ...">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="save_project">
             <div>
@@ -57,7 +277,7 @@ function admin_render_knowledge_upload_card(array $uploadResults): void
     <div class="card">
         <h2>Wissensbasis erweitern</h2>
         <p class="muted">Neue Dateien werden in Textabschnitte umgewandelt. Danach werden Schnellfragen, Aufgabenbeispiele und Vorlagen automatisch aus der Wissensbasis neu erzeugt.</p>
-        <form method="post" enctype="multipart/form-data" class="stack">
+        <form method="post" action="<?= e(admin_section_url('knowledge')) ?>" enctype="multipart/form-data" class="stack" data-working-label="Dateien werden verarbeitet ...">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="upload_documents">
             <div>
@@ -66,7 +286,7 @@ function admin_render_knowledge_upload_card(array $uploadResults): void
             </div>
             <div class="actions">
                 <button class="btn btn-primary" type="submit">Dateien hochladen und verarbeiten</button>
-                <button class="btn btn-secondary" type="submit" name="action" value="regenerate_profile">Beispielinhalte neu erzeugen</button>
+                <button class="btn btn-secondary" type="submit" name="action" value="regenerate_profile" data-working-label="Beispielinhalte werden erzeugt ...">Beispielinhalte neu erzeugen</button>
             </div>
         </form>
 
@@ -100,7 +320,7 @@ function admin_render_live_config_card(array $publicConfig, array $chunks): void
             <div><strong>Untertitel</strong><br><span class="muted"><?= e($publicConfig['subtitle']) ?></span></div>
             <div><strong>Schnellfragen</strong><br><span class="muted"><?= e((string) count($publicConfig['frontend']['quick_questions'])) ?> Einträge</span></div>
             <div><strong>Vorlagen</strong><br><span class="muted"><?= e((string) count($publicConfig['frontend']['templates'])) ?> Sektionen</span></div>
-            <div><strong>Textabschnitte</strong><br><span class="muted"><?= e((string) count($chunks)) ?> Dateien im RAG-Verzeichnis</span></div>
+            <div><strong>Textabschnitte</strong><br><span class="muted"><?= e((string) count($chunks)) ?> Dateien in der Wissensbasis</span></div>
         </div>
     </div>
     <?php
@@ -119,7 +339,7 @@ function admin_render_content_curation_card(array $project): void
     <div class="card">
         <h2>Schnellfragen und Vorlagen kuratieren</h2>
         <p class="muted">Diese Inhalte werden öffentlich im Assistenten angezeigt. Automatisch erzeugte Vorschläge können hier fachlich bereinigt, umsortiert oder ersetzt werden.</p>
-        <form method="post" class="stack">
+        <form method="post" action="<?= e(admin_section_url('contents')) ?>" class="stack" data-working-label="Inhalte werden gespeichert ...">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="save_frontend_content">
             <div class="grid two">
@@ -182,15 +402,16 @@ function admin_render_content_curation_card(array $project): void
     <?php
 }
 
-function admin_render_api_security_card(array $model): void
+function admin_render_provider_card(array $model): void
 {
     $apiConfig = $model['apiConfig'];
     $apiKeyConfigured = (bool) $model['apiKeyConfigured'];
     $modelProvider = $model['modelProvider'];
     ?>
     <div class="card">
-        <h2>API und Sicherheit</h2>
-        <form method="post" class="stack">
+        <h2>KI-Anbieter</h2>
+        <p class="muted">Hier wird festgelegt, ob das System Gemini, ein OpenAI-kompatibles Gateway oder später eine lokale KI nutzt.</p>
+        <form method="post" action="<?= e(admin_section_url('provider')) ?>" class="stack" data-working-label="API-Konfiguration wird gespeichert ...">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="save_apikey">
             <div>
@@ -220,10 +441,6 @@ function admin_render_api_security_card(array $model): void
                 <input type="text" name="model" value="<?= e((string) ($apiConfig['model'] ?? DEFAULT_MODEL_NAME)) ?>">
             </div>
             <div>
-                <strong>Datenverzeichnis</strong><br>
-                <span class="muted"><?= e($model['dataRootStatus']) ?></span>
-            </div>
-            <div>
                 <strong>Fähigkeiten</strong><br>
                 <span class="muted">
                     Streaming: <?= !empty($modelProvider['capabilities']['streaming']) ? 'ja' : 'nein' ?> ·
@@ -235,23 +452,6 @@ function admin_render_api_security_card(array $model): void
         </form>
 
         <?php admin_render_model_test_form($model, 'margin-top:18px'); ?>
-
-        <details>
-            <summary>Admin-Passwort ändern</summary>
-            <form method="post" class="stack" style="margin-top:12px">
-                <?= csrf_field() ?>
-                <input type="hidden" name="action" value="reset_password">
-                <div>
-                    <label>Neues Passwort</label>
-                    <input type="password" name="pw1" autocomplete="new-password">
-                </div>
-                <div>
-                    <label>Passwort wiederholen</label>
-                    <input type="password" name="pw2" autocomplete="new-password">
-                </div>
-                <button class="btn btn-secondary" type="submit">Passwort aktualisieren</button>
-            </form>
-        </details>
     </div>
     <?php
 }

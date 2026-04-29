@@ -61,6 +61,9 @@ function admin_handle_request(): array
         case 'delete_chunk':
             admin_action_delete_chunk($state);
             break;
+        case 'delete_chunks':
+            admin_action_delete_chunks($state);
+            break;
         case 'reset_password':
             admin_action_reset_password($state);
             break;
@@ -97,7 +100,14 @@ function admin_action_setup_password(array &$state): void
     file_put_contents(password_file(), password_hash($pw1, PASSWORD_DEFAULT));
     session_regenerate_id(true);
     $_SESSION['admin_ok'] = true;
-    admin_set_message($state, 'success', 'Admin-Passwort gespeichert. Weiter mit Schritt 2.');
+    $nextStep = current_setup_step(load_api_config(), load_project_config());
+    $message = match ($nextStep) {
+        'done' => 'Admin-Passwort gespeichert. Die Einrichtung ist vollständig.',
+        'profile' => 'Admin-Passwort gespeichert. Weiter mit dem Projektprofil.',
+        'documents' => 'Admin-Passwort gespeichert. Weiter mit der Wissensbasis.',
+        default => 'Admin-Passwort gespeichert. Weiter mit Schritt 2.',
+    };
+    admin_set_message($state, 'success', $message);
 }
 
 function admin_action_login(array &$state): void
@@ -292,16 +302,63 @@ function admin_action_regenerate_profile(array &$state, array $apiConfig, array 
 
 function admin_action_delete_chunk(array &$state): void
 {
-    $file = basename((string) ($_POST['file'] ?? ''));
-    if (!preg_match('/^[A-Za-z0-9._-]+\.md$/', $file)) {
+    $file = admin_normalize_chunk_filename((string) ($_POST['file'] ?? ''));
+    if ($file === null) {
         admin_set_message($state, 'error', 'Ungültiger Dateiname.');
         return;
     }
 
-    $path = chunks_dir() . '/' . $file;
-    if (!file_exists($path) || !unlink($path)) {
-        admin_set_message($state, 'error', 'Chunk konnte nicht gelöscht werden.');
+    admin_delete_chunk_files($state, [$file], 'Textabschnitt gelöscht.');
+}
+
+function admin_action_delete_chunks(array &$state): void
+{
+    $submittedFiles = $_POST['files'] ?? [];
+    if (!is_array($submittedFiles)) {
+        admin_set_message($state, 'error', 'Bitte mindestens einen Textabschnitt auswählen.');
         return;
+    }
+
+    $files = [];
+    foreach ($submittedFiles as $submittedFile) {
+        $file = admin_normalize_chunk_filename((string) $submittedFile);
+        if ($file === null) {
+            admin_set_message($state, 'error', 'Mindestens ein ausgewählter Dateiname ist ungültig.');
+            return;
+        }
+        $files[] = $file;
+    }
+
+    $files = array_values(array_unique($files));
+    if ($files === []) {
+        admin_set_message($state, 'error', 'Bitte mindestens einen Textabschnitt auswählen.');
+        return;
+    }
+
+    admin_delete_chunk_files($state, $files, count($files) . ' Textabschnitt(e) gelöscht.');
+}
+
+function admin_normalize_chunk_filename(string $file): ?string
+{
+    $file = trim($file);
+    if ($file === '' || $file !== basename($file)) {
+        return null;
+    }
+
+    return preg_match('/^[A-Za-z0-9._-]+\.md$/', $file) ? $file : null;
+}
+
+function admin_delete_chunk_files(array &$state, array $files, string $successMessage): void
+{
+    $deleted = 0;
+    $failed = [];
+    foreach ($files as $file) {
+        $path = chunks_dir() . '/' . $file;
+        if (!file_exists($path) || !unlink($path)) {
+            $failed[] = $file;
+            continue;
+        }
+        $deleted++;
     }
 
     $project = load_project_config();
@@ -309,7 +366,13 @@ function admin_action_delete_chunk(array &$state): void
         $project['setup']['knowledge_completed_at'] = null;
         save_project_config($project);
     }
-    admin_set_message($state, 'success', 'Chunk gelöscht.');
+
+    if ($failed !== []) {
+        admin_set_message($state, 'error', $deleted . ' Textabschnitt(e) gelöscht, ' . count($failed) . ' konnten nicht gelöscht werden.');
+        return;
+    }
+
+    admin_set_message($state, 'success', $successMessage);
 }
 
 function admin_action_reset_password(array &$state): void

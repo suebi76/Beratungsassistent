@@ -34,7 +34,7 @@ function admin_render_wizard_api_form(array $apiConfig): void
 {
     $provider = normalize_model_provider((string) ($apiConfig['provider'] ?? 'gemini'));
     ?>
-    <form method="post" class="stack" style="max-width:620px">
+    <form method="post" class="stack" style="max-width:620px" data-working-label="API-Konfiguration wird gespeichert ...">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="save_apikey">
         <div>
@@ -67,7 +67,7 @@ function admin_render_wizard_api_form(array $apiConfig): void
 function admin_render_wizard_profile_form(array $project): void
 {
     ?>
-    <form method="post" class="stack" style="max-width:720px">
+    <form method="post" class="stack" style="max-width:720px" data-working-label="Profil wird gespeichert ...">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="save_project">
         <div>
@@ -92,7 +92,7 @@ function admin_render_wizard_profile_form(array $project): void
 function admin_render_wizard_documents_form(): void
 {
     ?>
-    <form method="post" enctype="multipart/form-data" class="stack" style="max-width:760px">
+    <form method="post" enctype="multipart/form-data" class="stack" style="max-width:760px" data-working-label="Dateien werden verarbeitet ...">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="upload_documents">
         <div class="dropzone stack">
