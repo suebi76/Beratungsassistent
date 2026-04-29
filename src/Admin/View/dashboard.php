@@ -157,6 +157,8 @@ function admin_render_api_security_card(array $model): void
             <button class="btn btn-secondary" type="submit">API-Konfiguration speichern</button>
         </form>
 
+        <?php admin_render_model_test_form($model, 'margin-top:18px'); ?>
+
         <details>
             <summary>Admin-Passwort ändern</summary>
             <form method="post" class="stack" style="margin-top:12px">

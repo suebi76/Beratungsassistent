@@ -48,3 +48,21 @@ function admin_render_topbar(array $project): void
     </div>
     <?php
 }
+
+function admin_render_model_test_form(array $model, string $style = ''): void
+{
+    $apiKeyConfigured = (bool) $model['apiKeyConfigured'];
+    $modelProvider = $model['modelProvider'];
+    $styleAttribute = $style !== '' ? ' style="' . e($style) . '"' : '';
+    ?>
+    <form method="post" class="stack"<?= $styleAttribute ?>>
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="test_model_provider">
+        <div>
+            <strong>Verbindungstest</strong><br>
+            <span class="muted">Sendet eine kurze Testanfrage an <?= e((string) $modelProvider['label']) ?> und prüft, ob Modell, Token und Base-URL zusammenpassen.</span>
+        </div>
+        <button class="btn btn-secondary" type="submit" <?= $apiKeyConfigured ? '' : 'disabled' ?>>KI-Verbindung testen</button>
+    </form>
+    <?php
+}

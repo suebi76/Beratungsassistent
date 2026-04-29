@@ -23,6 +23,7 @@ function admin_render_styles(): void
         input:focus, textarea:focus, select:focus { outline: none; border-color: #1f5eff; box-shadow: 0 0 0 4px rgba(31,94,255,0.12); }
         .btn { appearance: none; border: none; border-radius: 14px; padding: 12px 18px; font: inherit; font-weight: 700; cursor: pointer; transition: transform .12s ease, opacity .12s ease; }
         .btn:hover { transform: translateY(-1px); }
+        .btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
         .btn-primary { background: linear-gradient(135deg, #1f5eff, #f15b2a); color: white; }
         .btn-secondary { background: #edf1f6; color: #18212b; }
         .btn-danger { background: #fff1f0; color: #b42318; }
@@ -61,4 +62,3 @@ function admin_render_styles(): void
     </style>
     <?php
 }
-

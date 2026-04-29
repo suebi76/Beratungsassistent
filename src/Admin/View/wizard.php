@@ -14,6 +14,10 @@ function admin_render_wizard(array $model): void
         </div>
 
         <?php
+        if ($model['setupStep'] !== 'api' && $model['setupStep'] !== 'password' && (bool) $model['apiKeyConfigured']) {
+            admin_render_model_test_form($model, 'max-width:620px; margin-bottom:18px');
+        }
+
         if ($model['setupStep'] === 'api') {
             admin_render_wizard_api_form($model['apiConfig']);
         } elseif ($model['setupStep'] === 'profile') {

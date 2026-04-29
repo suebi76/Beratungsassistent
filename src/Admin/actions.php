@@ -43,6 +43,9 @@ function admin_handle_request(): array
         case 'save_apikey':
             admin_action_save_api_key($state, $apiConfig);
             break;
+        case 'test_model_provider':
+            admin_action_test_model_provider($state, $apiConfig);
+            break;
         case 'save_project':
             admin_action_save_project($state, $project);
             break;
@@ -159,6 +162,32 @@ function admin_action_save_api_key(array &$state, array $apiConfig): void
         $message = 'API-Schlüssel oder Token gespeichert. Weiter mit dem Projektprofil.';
     }
     admin_set_message($state, 'success', $message);
+}
+
+function admin_action_test_model_provider(array &$state, array $apiConfig): void
+{
+    if (!api_key_is_configured($apiConfig)) {
+        admin_set_message($state, 'error', 'Bitte zuerst einen KI-Anbieter vollständig konfigurieren.');
+        return;
+    }
+
+    $gateway = model_gateway($apiConfig);
+    $result = $gateway->testConnection();
+    if ($result['ok'] ?? false) {
+        $answer = trim((string) ($result['text'] ?? 'ok'));
+        if ($answer === '') {
+            $answer = 'ok';
+        }
+        admin_set_message($state, 'success', $gateway->providerLabel() . ' ist erreichbar. Testantwort: ' . mb_substr($answer, 0, 80, 'UTF-8'));
+        return;
+    }
+
+    $message = trim((string) ($result['error'] ?? 'Unbekannter Fehler beim Verbindungstest.'));
+    if (!empty($result['retryable'])) {
+        $message .= ' Der Fehler kann vorübergehend sein; bitte später erneut testen.';
+    }
+
+    admin_set_message($state, 'error', $gateway->providerLabel() . ' ist nicht erreichbar: ' . $message);
 }
 
 function admin_action_save_project(array &$state, array $project): void

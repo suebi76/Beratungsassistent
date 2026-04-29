@@ -101,6 +101,10 @@ try {
     test_assert($adminOpenAiConfig['api_key'] === '', 'Admin-Speichern darf den Gemini-Schlüssel beim Providerwechsel nicht als Token wiederverwenden.');
     $_POST = [];
 
+    $state = [];
+    admin_action_test_model_provider($state, default_api_config());
+    test_assert($state['messageType'] === 'error', 'Verbindungstest ohne vollständige Konfiguration sollte blockiert werden.');
+
     test_assert(save_api_config('', 'llama3.1', 'openai_compatible', 'http://localhost:11434/v1'), 'OpenAI-kompatible Konfiguration konnte nicht gespeichert werden.');
     $openAiConfig = load_api_config();
     test_assert($openAiConfig['provider'] === 'openai_compatible', 'OpenAI-kompatibler Provider wurde nicht gespeichert.');
