@@ -11,7 +11,7 @@ Diese Struktur trennt fachliche Verantwortlichkeiten. `lib/app.php` bleibt nur a
 - `Security/`: Admin-Session, Flash-Messages und CSRF-Helfer.
 - `Knowledge/`: Chunk-Dateien, Frontmatter, RAG-Retrieval und RAG-Kontextblock.
 - `Ingestion/`: Uploads, Dokumentvalidierung, Chunk-Generierung und Dokumentverarbeitung.
-- `AI/`: Modellanbieter-Gateway, Gemini-Provider und API-Header.
+- `AI/`: Modellanbieter-Gateway, Gemini-Provider, OpenAI-kompatibler Provider und API-Header.
 - `Profile/`: automatische Frontend-/Projektprofil-Generierung aus der Wissensbasis.
 - `PublicApi/`: öffentliche Konfiguration für das Frontend.
 - `Prompt/`: Systemprompt und Chat-Normalisierung für den aktiven Modellanbieter.

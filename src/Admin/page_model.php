@@ -8,9 +8,16 @@ function admin_build_page_model(array $requestState): array
     $setupStep = current_setup_step($apiConfig, $project);
     $chunks = get_chunks();
     $publicConfig = public_project_config($project);
+    $gateway = model_gateway($apiConfig);
 
     return [
         'apiConfig' => $apiConfig,
+        'modelProvider' => [
+            'id' => $gateway->providerId(),
+            'label' => $gateway->providerLabel(),
+            'capabilities' => $gateway->capabilities(),
+            'allowed' => allowed_model_providers(),
+        ],
         'project' => $project,
         'message' => (string) ($requestState['message'] ?? ''),
         'messageType' => (string) ($requestState['messageType'] ?? 'info'),

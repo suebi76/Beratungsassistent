@@ -54,7 +54,8 @@ function gemini_generate_text_once(array $parts, array $apiConfig, array $option
         ],
     ];
 
-    $url = 'https://generativelanguage.googleapis.com/v1beta/models/'
+    $baseUrl = rtrim((string) ($apiConfig['base_url'] ?? 'https://generativelanguage.googleapis.com'), '/');
+    $url = $baseUrl . '/v1beta/models/'
         . rawurlencode((string) ($apiConfig['model'] ?? DEFAULT_MODEL_NAME))
         . ':generateContent';
 

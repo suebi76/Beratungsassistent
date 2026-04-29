@@ -109,6 +109,7 @@ function admin_render_api_security_card(array $model): void
 {
     $apiConfig = $model['apiConfig'];
     $apiKeyConfigured = (bool) $model['apiKeyConfigured'];
+    $modelProvider = $model['modelProvider'];
     ?>
     <div class="card">
         <h2>API und Sicherheit</h2>
@@ -116,13 +117,26 @@ function admin_render_api_security_card(array $model): void
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="save_apikey">
             <div>
-                <strong>API-Schlüssel-Status</strong><br>
-                <span class="muted"><?= $apiKeyConfigured ? 'Gemini-API-Schlüssel ist serverseitig hinterlegt.' : 'Noch kein Gemini-API-Schlüssel hinterlegt.' ?></span>
+                <strong>KI-Anbieter</strong><br>
+                <span class="muted"><?= e((string) $modelProvider['label']) ?> <?= $apiKeyConfigured ? 'ist konfiguriert.' : 'ist noch nicht vollständig konfiguriert.' ?></span>
             </div>
             <div>
-                <label>Gemini-API-Schlüssel</label>
+                <label>Anbieter</label>
+                <select name="provider">
+                    <?php foreach ($modelProvider['allowed'] as $id => $label): ?>
+                        <option value="<?= e((string) $id) ?>" <?= ($apiConfig['provider'] ?? 'gemini') === $id ? 'selected' : '' ?>><?= e((string) $label) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div>
+                <label>Base URL</label>
+                <input type="url" name="base_url" value="<?= e((string) ($apiConfig['base_url'] ?? default_base_url_for_provider((string) ($apiConfig['provider'] ?? 'gemini')))) ?>">
+                <p class="muted" style="margin:6px 0 0">Für lokale KI zum Beispiel <code>http://localhost:11434/v1</code> oder ein internes Modellgateway.</p>
+            </div>
+            <div>
+                <label>API-Schlüssel oder Token</label>
                 <input type="password" name="apikey" value="" placeholder="<?= e($apiKeyConfigured ? 'Leer lassen, um den vorhandenen Schlüssel zu behalten' : 'AIza...') ?>" autocomplete="off">
-                <p class="muted" style="margin:6px 0 0">Der gespeicherte Schlüssel wird nicht mehr im HTML ausgegeben.</p>
+                <p class="muted" style="margin:6px 0 0">Der gespeicherte Schlüssel wird nicht mehr im HTML ausgegeben. Lokale Endpunkte können ohne Token betrieben werden.</p>
             </div>
             <div>
                 <label>Modell</label>
@@ -131,6 +145,14 @@ function admin_render_api_security_card(array $model): void
             <div>
                 <strong>Datenverzeichnis</strong><br>
                 <span class="muted"><?= e($model['dataRootStatus']) ?></span>
+            </div>
+            <div>
+                <strong>Fähigkeiten</strong><br>
+                <span class="muted">
+                    Streaming: <?= !empty($modelProvider['capabilities']['streaming']) ? 'ja' : 'nein' ?> ·
+                    PDF-Direktverarbeitung: <?= !empty($modelProvider['capabilities']['pdf_input']) ? 'ja' : 'nein' ?> ·
+                    JSON-Modus: <?= !empty($modelProvider['capabilities']['json_mode']) ? 'ja' : 'nein' ?>
+                </span>
             </div>
             <button class="btn btn-secondary" type="submit">API-Konfiguration speichern</button>
         </form>

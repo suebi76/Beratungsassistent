@@ -28,13 +28,26 @@ function admin_render_wizard(array $model): void
 
 function admin_render_wizard_api_form(array $apiConfig): void
 {
+    $provider = normalize_model_provider((string) ($apiConfig['provider'] ?? 'gemini'));
     ?>
     <form method="post" class="stack" style="max-width:620px">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="save_apikey">
         <div>
-            <label>Gemini-API-Schlüssel</label>
-            <input type="password" name="apikey" required placeholder="AIza..." autocomplete="off">
+            <label>KI-Anbieter</label>
+            <select name="provider">
+                <?php foreach (allowed_model_providers() as $id => $label): ?>
+                    <option value="<?= e((string) $id) ?>" <?= $provider === $id ? 'selected' : '' ?>><?= e((string) $label) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div>
+            <label>Base URL</label>
+            <input type="url" name="base_url" value="<?= e((string) ($apiConfig['base_url'] ?? default_base_url_for_provider($provider))) ?>">
+        </div>
+        <div>
+            <label>API-Schlüssel oder Token</label>
+            <input type="password" name="apikey" placeholder="AIza... oder Token des Modellgateways" autocomplete="off">
         </div>
         <div>
             <label>Modell</label>

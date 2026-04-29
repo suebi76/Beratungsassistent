@@ -43,6 +43,7 @@ function model_provider_from_config(array $apiConfig): ModelProvider
     $provider = trim((string) ($apiConfig['provider'] ?? 'gemini'));
 
     return match ($provider) {
+        'openai_compatible' => new OpenAiCompatibleProvider($apiConfig),
         'gemini', '' => new GeminiProvider($apiConfig),
         default => new GeminiProvider($apiConfig),
     };

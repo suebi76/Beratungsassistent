@@ -115,27 +115,49 @@ function admin_action_logout(): never
 
 function admin_action_save_api_key(array &$state, array $apiConfig): void
 {
+    $provider = normalize_model_provider((string) ($_POST['provider'] ?? ($apiConfig['provider'] ?? 'gemini')));
     $key = trim((string) ($_POST['apikey'] ?? ''));
     $model = trim((string) ($_POST['model'] ?? DEFAULT_MODEL_NAME));
     $existingKey = trim((string) ($apiConfig['api_key'] ?? ''));
+    $existingProvider = normalize_model_provider((string) ($apiConfig['provider'] ?? 'gemini'));
+    $submittedBaseUrl = normalize_whitespace((string) ($_POST['base_url'] ?? ''));
+    $baseUrl = $submittedBaseUrl !== '' ? $submittedBaseUrl : default_base_url_for_provider($provider);
 
-    if ($key === '' && $existingKey !== '') {
+    if ($provider !== $existingProvider && $submittedBaseUrl === default_base_url_for_provider($existingProvider)) {
+        $baseUrl = default_base_url_for_provider($provider);
+    }
+
+    if ($key === '' && $existingKey !== '' && $provider === $existingProvider) {
         $key = $existingKey;
     }
 
-    if (strlen($key) < 10) {
+    if ($model === '') {
+        admin_set_message($state, 'error', 'Bitte einen Modellnamen eintragen.');
+        return;
+    }
+
+    if (!filter_var($baseUrl, FILTER_VALIDATE_URL)) {
+        admin_set_message($state, 'error', 'Bitte eine gültige Anbieter-URL eintragen.');
+        return;
+    }
+
+    if ($provider === 'gemini' && strlen($key) < 10) {
         admin_set_message($state, 'error', 'Bitte den vollständigen Gemini-API-Schlüssel eintragen.');
         return;
     }
 
-    if (!save_api_config($key, $model)) {
+    if (!save_api_config($key, $model, $provider, $baseUrl)) {
         admin_set_message($state, 'error', 'API-Konfiguration konnte nicht gespeichert werden.');
         return;
     }
 
-    $message = trim((string) ($_POST['apikey'] ?? '')) === ''
-        ? 'API-Konfiguration gespeichert. Der vorhandene API-Schlüssel bleibt unverändert.'
-        : 'API-Schlüssel gespeichert. Weiter mit dem Projektprofil.';
+    if (trim((string) ($_POST['apikey'] ?? '')) === '') {
+        $message = $provider === $existingProvider && $existingKey !== ''
+            ? 'API-Konfiguration gespeichert. Der vorhandene API-Schlüssel bleibt unverändert.'
+            : 'API-Konfiguration gespeichert.';
+    } else {
+        $message = 'API-Schlüssel oder Token gespeichert. Weiter mit dem Projektprofil.';
+    }
     admin_set_message($state, 'success', $message);
 }
 

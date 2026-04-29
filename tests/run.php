@@ -5,6 +5,7 @@ $testRoot = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'beratungsassistent-test-
 putenv('BERATUNGSASSISTENT_DATA_DIR=' . $testRoot);
 
 require __DIR__ . '/../lib/app.php';
+require __DIR__ . '/../src/Admin/actions.php';
 
 function test_assert(bool $condition, string $message): void
 {
@@ -72,6 +73,40 @@ try {
     test_assert($apiConfig['api_key'] === 'test-api-key-12345', 'API-Schlüssel wurde nicht geladen.');
     test_assert($apiConfig['model'] === 'test-model', 'Modell wurde nicht geladen.');
     test_assert(api_key_is_configured($apiConfig), 'API-Konfiguration sollte als konfiguriert gelten.');
+
+    $_POST = [
+        'provider' => 'gemini',
+        'base_url' => default_base_url_for_provider('gemini'),
+        'apikey' => '',
+        'model' => 'test-model-2',
+    ];
+    $state = [];
+    admin_action_save_api_key($state, $apiConfig);
+    $preservedGeminiConfig = load_api_config();
+    test_assert($state['messageType'] === 'success', 'Admin-Speichern mit vorhandenem Schlüssel sollte erfolgreich sein.');
+    test_assert($preservedGeminiConfig['api_key'] === 'test-api-key-12345', 'Vorhandener Schlüssel sollte bei gleichem Provider erhalten bleiben.');
+
+    $_POST = [
+        'provider' => 'openai_compatible',
+        'base_url' => default_base_url_for_provider('gemini'),
+        'apikey' => '',
+        'model' => 'llama3.1',
+    ];
+    $state = [];
+    admin_action_save_api_key($state, $preservedGeminiConfig);
+    $adminOpenAiConfig = load_api_config();
+    test_assert($state['messageType'] === 'success', 'Admin-Speichern des OpenAI-kompatiblen Providers sollte erfolgreich sein.');
+    test_assert($adminOpenAiConfig['provider'] === 'openai_compatible', 'Admin-Speichern sollte den Provider wechseln.');
+    test_assert($adminOpenAiConfig['base_url'] === default_base_url_for_provider('openai_compatible'), 'Admin-Speichern sollte beim Providerwechsel die Standard-Base-URL anpassen.');
+    test_assert($adminOpenAiConfig['api_key'] === '', 'Admin-Speichern darf den Gemini-Schlüssel beim Providerwechsel nicht als Token wiederverwenden.');
+    $_POST = [];
+
+    test_assert(save_api_config('', 'llama3.1', 'openai_compatible', 'http://localhost:11434/v1'), 'OpenAI-kompatible Konfiguration konnte nicht gespeichert werden.');
+    $openAiConfig = load_api_config();
+    test_assert($openAiConfig['provider'] === 'openai_compatible', 'OpenAI-kompatibler Provider wurde nicht gespeichert.');
+    test_assert(api_key_is_configured($openAiConfig), 'OpenAI-kompatibler Endpunkt sollte ohne Token als konfiguriert gelten.');
+    test_assert(model_gateway($openAiConfig)->providerId() === 'openai_compatible', 'OpenAI-kompatibler Provider wurde nicht ausgewählt.');
+    test_assert(model_gateway($openAiConfig)->capabilities()['pdf_input'] === false, 'OpenAI-kompatibler Provider sollte PDF-Direktinput nicht melden.');
 
     echo "All tests passed.\n";
 } finally {

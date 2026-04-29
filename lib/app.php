@@ -30,6 +30,7 @@ require_once __DIR__ . '/../src/AI/ModelRequest.php';
 require_once __DIR__ . '/../src/AI/ModelProvider.php';
 require_once __DIR__ . '/../src/AI/gemini_client.php';
 require_once __DIR__ . '/../src/AI/GeminiProvider.php';
+require_once __DIR__ . '/../src/AI/OpenAiCompatibleProvider.php';
 require_once __DIR__ . '/../src/AI/ModelGateway.php';
 require_once __DIR__ . '/../src/Ingestion/document_ingestion.php';
 
