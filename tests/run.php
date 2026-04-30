@@ -146,6 +146,30 @@ try {
     test_assert($splitAdvice['large_pdf'] === true, 'Große PDF sollte Split-Hinweis auslösen.');
     test_assert($splitAdvice['example_first_file'] === 'orientierungsrahmen_teil-001_seiten-001-025.pdf', 'Split-Hinweis sollte einen logischen Beispieldateinamen liefern.');
 
+    $uploadProbe = runtime_root('tmp/upload-probe.txt');
+    file_put_contents($uploadProbe, 'gleicher Inhalt');
+    $uploadHash = uploaded_file_sha256(['tmp_name' => $uploadProbe]);
+    test_assert($uploadHash === hash('sha256', 'gleicher Inhalt'), 'Upload-Hash sollte SHA-256 der Datei liefern.');
+
+    $duplicateProject = load_project_config();
+    $duplicateProject['documents'] = [[
+        'original_name' => 'probe.txt',
+        'stored_name' => 'probe.txt',
+        'sha256' => $uploadHash,
+        'uploaded_at' => '2026-04-30T12:00:00+02:00',
+    ]];
+    $duplicateDocument = find_duplicate_document_by_sha256($duplicateProject, (string) $uploadHash);
+    test_assert($duplicateDocument !== null, 'Duplikaterkennung sollte Dokumente anhand gespeicherter SHA-256 erkennen.');
+    $duplicateResult = duplicate_upload_result('probe.txt', (string) $uploadHash, $duplicateDocument);
+    test_assert(($duplicateResult['ok'] ?? false) && ($duplicateResult['skipped_duplicate'] ?? false), 'Duplikat-Result sollte als übersprungener Erfolg gelten.');
+
+    file_put_contents(uploads_dir() . '/legacy.txt', 'legacy Inhalt');
+    $legacyHash = hash('sha256', 'legacy Inhalt');
+    $legacyProject = ['documents' => [['original_name' => 'legacy.txt', 'stored_name' => 'legacy.txt']]];
+    test_assert(find_duplicate_document_by_sha256($legacyProject, $legacyHash) !== null, 'Duplikaterkennung sollte Legacy-Dokumente über gespeicherte Upload-Datei erkennen.');
+    test_assert(delete_stored_upload_file('legacy.txt'), 'Gespeicherte Upload-Datei sollte sicher gelöscht werden können.');
+    test_assert(!file_exists(uploads_dir() . '/legacy.txt'), 'Gelöschte Upload-Datei sollte nicht mehr existieren.');
+
     $jobId = admin_create_upload_job_id();
     admin_upload_job_start($jobId, 'test.txt', 123);
     admin_upload_job_update($jobId, 'model_processing', 45, 'KI verarbeitet die Datei.');

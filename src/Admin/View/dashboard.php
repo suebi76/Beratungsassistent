@@ -334,7 +334,10 @@ function admin_render_knowledge_upload_card(array $uploadResults): void
             <div class="result-list">
                 <?php foreach ($uploadResults as $result): ?>
                     <div class="result-item">
-                        <?php if ($result['ok'] ?? false): ?>
+                        <?php if (($result['ok'] ?? false) && !empty($result['skipped_duplicate'])): ?>
+                            <strong>Übersprungen</strong><br>
+                            <span class="muted"><?= e((string) ($result['message'] ?? 'Datei ist bereits vorhanden.')) ?></span>
+                        <?php elseif ($result['ok'] ?? false): ?>
                             <strong><?= e($result['document']['original_name'] ?? '') ?></strong><br>
                             <span class="muted"><?= count($result['saved_chunks'] ?? []) ?> Textabschnitte erzeugt</span>
                         <?php else: ?>

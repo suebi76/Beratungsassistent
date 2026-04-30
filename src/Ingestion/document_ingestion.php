@@ -9,6 +9,15 @@ function process_uploaded_document(array $file, array $project, array $apiConfig
         return ['ok' => false, 'error' => $validation['error'] ?? 'Datei konnte nicht validiert werden.'];
     }
 
+    $fileHash = uploaded_file_sha256($file);
+    if ($fileHash !== null) {
+        $duplicateDocument = find_duplicate_document_by_sha256($project, $fileHash);
+        if ($duplicateDocument !== null) {
+            document_ingestion_progress($onProgress, 'duplicate_detected', 100, 'Datei ist bereits vorhanden und wird übersprungen.');
+            return duplicate_upload_result((string) $file['name'], $fileHash, $duplicateDocument);
+        }
+    }
+
     $pdfAdvice = null;
     if ((string) $validation['extension'] === 'pdf') {
         $pdfAdvice = pdf_split_advice_for_file((string) $file['name'], (int) ($file['size'] ?? 0), (string) ($file['tmp_name'] ?? ''));
@@ -42,6 +51,7 @@ function process_uploaded_document(array $file, array $project, array $apiConfig
             'ok' => false,
             'error' => $generation['error'] ?? 'Gemini konnte die Datei nicht verarbeiten.',
             'stored_name' => $stored['stored_name'],
+            'stored_file_deleted' => delete_stored_upload_file((string) $stored['stored_name']),
             'pdf_split_advice' => $pdfAdvice,
         ];
     }
@@ -57,6 +67,7 @@ function process_uploaded_document(array $file, array $project, array $apiConfig
             'ok' => false,
             'error' => $error,
             'stored_name' => $stored['stored_name'],
+            'stored_file_deleted' => delete_stored_upload_file((string) $stored['stored_name']),
             'pdf_split_advice' => $pdfAdvice,
         ];
     }
@@ -70,6 +81,9 @@ function process_uploaded_document(array $file, array $project, array $apiConfig
         'uploaded_at' => now_iso(),
         'chunks_created' => count($savedChunks),
     ];
+    if ($fileHash !== null) {
+        $document['sha256'] = $fileHash;
+    }
     if ($pdfAdvice !== null) {
         $document['pdf_analysis'] = pdf_split_document_metadata($pdfAdvice);
     }
@@ -80,6 +94,7 @@ function process_uploaded_document(array $file, array $project, array $apiConfig
         'stored_name' => $stored['stored_name'],
         'saved_chunks' => $savedChunks,
         'document' => $document,
+        'sha256' => $fileHash,
         'pdf_split_advice' => $pdfAdvice,
     ];
 }

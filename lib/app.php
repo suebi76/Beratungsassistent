@@ -26,6 +26,7 @@ require_once __DIR__ . '/../src/Knowledge/retrieval.php';
 require_once __DIR__ . '/../src/Config/setup_status.php';
 
 require_once __DIR__ . '/../src/Ingestion/uploads.php';
+require_once __DIR__ . '/../src/Ingestion/document_duplicates.php';
 require_once __DIR__ . '/../src/Ingestion/pdf_splitting.php';
 require_once __DIR__ . '/../src/Ingestion/chunk_generation.php';
 require_once __DIR__ . '/../src/AI/ProviderCapabilities.php';

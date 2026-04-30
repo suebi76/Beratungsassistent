@@ -337,12 +337,17 @@
 
                 const chunkCount = Array.isArray(result.saved_chunks) ? result.saved_chunks.length : 0;
                 item.status = 'done';
-                item.statusLabel = 'Fertig';
+                item.statusLabel = result.skipped_duplicate ? 'Übersprungen' : 'Fertig';
                 item.percent = 100;
-                item.detail = !payload.ok && payload.message
-                    ? `Verarbeitet; Hinweis: ${payload.message}`
-                    : `${chunkCount} Textabschnitt(e) erzeugt`;
+                if (result.skipped_duplicate && result.message) {
+                    item.detail = result.message;
+                } else if (!payload.ok && payload.message) {
+                    item.detail = `Verarbeitet; Hinweis: ${payload.message}`;
+                } else {
+                    item.detail = `${chunkCount} Textabschnitt(e) erzeugt`;
+                }
                 renderQueue();
+                return result;
             } finally {
                 window.clearInterval(pollTimer);
             }
@@ -395,14 +400,19 @@
             renderQueue();
 
             let successThisRun = 0;
+            let skippedThisRun = 0;
             let errorsThisRun = 0;
             for (const item of queue) {
                 if (item.status !== 'waiting') {
                     continue;
                 }
                 try {
-                    await uploadItem(item);
-                    successThisRun += 1;
+                    const result = await uploadItem(item);
+                    if (result?.skipped_duplicate) {
+                        skippedThisRun += 1;
+                    } else {
+                        successThisRun += 1;
+                    }
                 } catch (error) {
                     item.status = 'error';
                     item.statusLabel = 'Fehler';
@@ -423,6 +433,8 @@
                     const message = error instanceof Error ? error.message : 'Unbekannter Fehler.';
                     queueMessage = `Dateien verarbeitet, aber die automatische Aktualisierung ist fehlgeschlagen: ${message}`;
                 }
+            } else if (skippedThisRun > 0) {
+                queueMessage = `${skippedThisRun} Datei(en) übersprungen, weil sie bereits vorhanden sind.`;
             } else {
                 queueMessage = `Keine Datei verarbeitet. ${errorsThisRun} Datei(en) mit Fehler.`;
             }

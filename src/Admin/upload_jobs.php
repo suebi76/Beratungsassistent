@@ -63,11 +63,14 @@ function admin_upload_job_update(string $jobId, string $stage, int $percent, str
 function admin_upload_job_finish(string $jobId, array $result): void
 {
     $ok = (bool) ($result['ok'] ?? false);
+    $message = $ok
+        ? (string) ($result['message'] ?? 'Datei wurde verarbeitet.')
+        : (string) ($result['error'] ?? 'Datei konnte nicht verarbeitet werden.');
     admin_upload_job_update(
         $jobId,
-        $ok ? 'done' : 'error',
+        !empty($result['skipped_duplicate']) ? 'duplicate_detected' : ($ok ? 'done' : 'error'),
         100,
-        $ok ? 'Datei wurde verarbeitet.' : (string) ($result['error'] ?? 'Datei konnte nicht verarbeitet werden.'),
+        $message,
         [
             'status' => $ok ? 'done' : 'error',
             'result' => $result,

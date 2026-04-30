@@ -343,17 +343,26 @@ function admin_action_upload_documents(array &$state, array $apiConfig, array $p
     }
 
     $successCount = 0;
+    $skippedCount = 0;
     foreach ($files as $file) {
         $result = admin_process_uploaded_document_safely($file, $project, $apiConfig);
         $state['uploadResults'][] = $result;
         if ($result['ok'] ?? false) {
-            $successCount++;
-            $project['documents'][] = $result['document'];
+            if (!empty($result['skipped_duplicate'])) {
+                $skippedCount++;
+            } else {
+                $successCount++;
+                $project['documents'][] = $result['document'];
+            }
         }
     }
 
-    if ($successCount <= 0) {
+    if ($successCount <= 0 && $skippedCount <= 0) {
         admin_set_message($state, 'error', 'Keine Datei konnte verarbeitet werden.');
+        return;
+    }
+    if ($successCount <= 0) {
+        admin_set_message($state, 'success', $skippedCount . ' Datei(en) übersprungen, weil sie bereits vorhanden sind.');
         return;
     }
 
@@ -361,7 +370,11 @@ function admin_action_upload_documents(array &$state, array $apiConfig, array $p
     save_project_config($project);
     $regen = admin_regenerate_project_profile_safely(load_project_config(), $apiConfig);
     if ($regen['ok'] ?? false) {
-        admin_set_message($state, 'success', $successCount . ' Datei(en) verarbeitet. Frontend-Vorlagen und Beispielfragen wurden neu erzeugt.');
+        $message = $successCount . ' Datei(en) verarbeitet';
+        if ($skippedCount > 0) {
+            $message .= ', ' . $skippedCount . ' bereits vorhandene übersprungen';
+        }
+        admin_set_message($state, 'success', $message . '. Frontend-Vorlagen und Beispielfragen wurden neu erzeugt.');
         return;
     }
 
@@ -393,6 +406,7 @@ function admin_action_upload_documents_async(array &$state, array $apiConfig, ar
     }
 
     $successCount = 0;
+    $skippedCount = 0;
     foreach ($files as $file) {
         admin_upload_job_start($jobId, (string) ($file['name'] ?? 'Datei'), (int) ($file['size'] ?? 0));
         $progress = static function (string $stage, int $percent, string $message) use ($jobId): void {
@@ -402,30 +416,42 @@ function admin_action_upload_documents_async(array &$state, array $apiConfig, ar
         $state['uploadResults'][] = $result;
         admin_upload_job_finish($jobId, $result);
         if ($result['ok'] ?? false) {
-            $successCount++;
-            $project['documents'][] = $result['document'];
+            if (!empty($result['skipped_duplicate'])) {
+                $skippedCount++;
+            } else {
+                $successCount++;
+                $project['documents'][] = $result['document'];
+            }
         }
     }
 
-    if ($successCount <= 0) {
+    if ($successCount <= 0 && $skippedCount <= 0) {
         admin_set_message($state, 'error', 'Datei konnte nicht verarbeitet werden.');
         return;
     }
 
-    $project['setup']['knowledge_completed_at'] = now_iso();
-    if (!save_project_config($project)) {
-        admin_set_message($state, 'error', 'Datei verarbeitet, aber die Projektkonfiguration konnte nicht gespeichert werden.');
-        return;
+    if ($successCount > 0) {
+        $project['setup']['knowledge_completed_at'] = now_iso();
+        if (!save_project_config($project)) {
+            admin_set_message($state, 'error', 'Datei verarbeitet, aber die Projektkonfiguration konnte nicht gespeichert werden.');
+            return;
+        }
     }
 
     $fileCount = count($files);
-    admin_set_message(
-        $state,
-        'success',
-        $fileCount === 1
+    if ($successCount <= 0 && $skippedCount > 0) {
+        $message = $fileCount === 1
+            ? 'Datei übersprungen, weil sie bereits vorhanden ist.'
+            : $skippedCount . ' Datei(en) übersprungen, weil sie bereits vorhanden sind.';
+    } else {
+        $message = $fileCount === 1
             ? 'Datei verarbeitet. Die Warteschlange fährt mit der nächsten Datei fort.'
-            : $successCount . ' Datei(en) verarbeitet. Die Warteschlange fährt fort.'
-    );
+            : $successCount . ' Datei(en) verarbeitet. Die Warteschlange fährt fort.';
+        if ($skippedCount > 0) {
+            $message .= ' ' . $skippedCount . ' bereits vorhandene Datei(en) wurden übersprungen.';
+        }
+    }
+    admin_set_message($state, 'success', $message);
     $state['jobId'] = $jobId;
 }
 
