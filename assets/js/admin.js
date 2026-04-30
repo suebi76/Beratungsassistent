@@ -126,6 +126,25 @@
         const statusUrl = new URL(actionUrl, window.location.href);
         statusUrl.search = '';
 
+        const resetFailedItem = (item) => {
+            item.jobId = createJobId();
+            item.percent = 0;
+            item.status = 'waiting';
+            item.statusLabel = 'Wartet';
+            item.detail = 'bereit zur Wiederholung';
+            queueMessage = 'Fehlgeschlagene Datei wurde wieder in die Warteschlange gelegt.';
+            renderQueue();
+        };
+
+        const removeQueueItem = (item) => {
+            const index = queue.indexOf(item);
+            if (index >= 0) {
+                queue.splice(index, 1);
+                queueMessage = '';
+                renderQueue();
+            }
+        };
+
         const updateProgress = () => {
             const percent = queue.length > 0
                 ? Math.round(queue.reduce((sum, item) => sum + (item.percent || 0), 0) / queue.length)
@@ -153,20 +172,26 @@
                 badge.textContent = item.statusLabel;
 
                 row.append(body, badge);
-                if (!running && item.status === 'waiting') {
+                if (!running && (item.status === 'waiting' || item.status === 'error')) {
+                    const itemActions = document.createElement('div');
+                    itemActions.className = 'upload-item-actions';
+
+                    if (item.status === 'error') {
+                        const retry = document.createElement('button');
+                        retry.type = 'button';
+                        retry.className = 'upload-retry';
+                        retry.textContent = 'Wiederholen';
+                        retry.addEventListener('click', () => resetFailedItem(item));
+                        itemActions.append(retry);
+                    }
+
                     const remove = document.createElement('button');
                     remove.type = 'button';
                     remove.className = 'upload-remove';
                     remove.textContent = 'Entfernen';
-                    remove.addEventListener('click', () => {
-                        const index = queue.indexOf(item);
-                        if (index >= 0) {
-                            queue.splice(index, 1);
-                            queueMessage = '';
-                            renderQueue();
-                        }
-                    });
-                    row.append(remove);
+                    remove.addEventListener('click', () => removeQueueItem(item));
+                    itemActions.append(remove);
+                    row.append(itemActions);
                 }
                 const itemProgress = document.createElement('div');
                 itemProgress.className = 'upload-item-progress';
@@ -188,6 +213,8 @@
                 summary.textContent = 'Keine Dateien ausgewählt.';
             } else if (running) {
                 summary.textContent = `${done} erledigt, ${errors} mit Fehler, ${waiting} warten.`;
+            } else if (errors > 0) {
+                summary.textContent = `${done} erledigt, ${errors} mit Fehler. Fehlgeschlagene Dateien können wiederholt werden.`;
             } else {
                 summary.textContent = `${queue.length} Datei(en) in der Warteschlange.`;
             }
@@ -271,6 +298,9 @@
             if (!payload.ok) {
                 return;
             }
+            if (item.status !== 'processing') {
+                return;
+            }
 
             item.percent = typeof payload.percent === 'number' ? payload.percent : item.percent;
             item.detail = payload.message || item.detail;
@@ -301,7 +331,7 @@
             try {
                 const payload = await postFormData(formData);
                 const result = Array.isArray(payload.uploadResults) ? payload.uploadResults[0] : null;
-                if (!payload.ok || !result || !result.ok) {
+                if (!result || !result.ok) {
                     throw new Error(result?.error || payload.message || 'Datei konnte nicht verarbeitet werden.');
                 }
 
@@ -309,7 +339,9 @@
                 item.status = 'done';
                 item.statusLabel = 'Fertig';
                 item.percent = 100;
-                item.detail = `${chunkCount} Textabschnitt(e) erzeugt`;
+                item.detail = !payload.ok && payload.message
+                    ? `Verarbeitet; Hinweis: ${payload.message}`
+                    : `${chunkCount} Textabschnitt(e) erzeugt`;
                 renderQueue();
             } finally {
                 window.clearInterval(pollTimer);
@@ -346,7 +378,10 @@
                 return;
             }
             if (!queue.some((item) => item.status === 'waiting')) {
-                queueMessage = 'Alle Dateien in dieser Warteschlange sind bereits verarbeitet. Fügen Sie neue Dateien hinzu.';
+                const errors = queue.filter((item) => item.status === 'error').length;
+                queueMessage = errors > 0
+                    ? 'Keine wartenden Dateien. Fehlgeschlagene Dateien können direkt mit „Wiederholen“ erneut eingeplant werden.'
+                    : 'Alle Dateien in dieser Warteschlange sind bereits verarbeitet. Fügen Sie neue Dateien hinzu.';
                 renderQueue();
                 return;
             }

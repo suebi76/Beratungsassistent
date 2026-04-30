@@ -333,14 +333,22 @@ function admin_render_styles(): void
             background: var(--color-primary);
             transition: width .2s ease;
         }
-        .upload-remove {
+        .upload-item-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+        .upload-remove, .upload-retry {
             border: 0;
             background: transparent;
-            color: var(--color-danger);
             font: inherit;
             font-weight: 800;
             cursor: pointer;
         }
+        .upload-remove { color: var(--color-danger); }
+        .upload-retry { color: var(--color-primary-dark); }
         .pdf-split-planner { display: grid; gap: 18px; }
         .split-preview {
             border: 1px solid #e3eae7;
