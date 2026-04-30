@@ -38,6 +38,9 @@ final class GeminiProvider implements ModelProvider
         if (!api_key_is_configured($this->apiConfig)) {
             return ['ok' => false, 'error' => 'Kein gültiger Gemini-API-Schlüssel konfiguriert.'];
         }
+        if (!function_exists('curl_init')) {
+            return ['ok' => false, 'error' => 'PHP-cURL ist nicht aktiviert. Bitte die PHP-Erweiterung curl auf dem Server aktivieren.'];
+        }
 
         $payload = [
             'contents' => $request->contents(),

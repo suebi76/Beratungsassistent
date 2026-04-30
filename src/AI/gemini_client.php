@@ -44,6 +44,10 @@ function gemini_generate_text(array $parts, array $apiConfig, array $options = [
 
 function gemini_generate_text_once(array $parts, array $apiConfig, array $options = []): array
 {
+    if (!function_exists('curl_init')) {
+        return ['ok' => false, 'error' => 'PHP-cURL ist nicht aktiviert. Bitte die PHP-Erweiterung curl auf dem Server aktivieren.'];
+    }
+
     $payload = [
         'contents' => [[
             'parts' => $parts,

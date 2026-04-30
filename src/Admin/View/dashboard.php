@@ -222,15 +222,34 @@ function admin_render_security_status_card(array $model): void
 
 function admin_render_operations_card(array $model): void
 {
+    $checks = admin_system_check_items($model);
     ?>
-    <div class="card">
-        <h2>Betrieb</h2>
-        <p class="muted">Technischer Status für Installation, Wartung und spätere Übergabe an IT-Verantwortliche.</p>
-        <div class="definition-grid">
-            <div><strong>PHP-Version</strong><span><?= e(PHP_VERSION) ?></span></div>
-            <div><strong>Datenverzeichnis</strong><span><?= e($model['dataRootStatus']) ?></span></div>
-            <div><strong>Textabschnitte</strong><span><?= e((string) count($model['chunks'])) ?></span></div>
-            <div><strong>Anbieter</strong><span><?= e((string) $model['modelProvider']['label']) ?></span></div>
+    <div class="grid two">
+        <div class="card">
+            <h2>Systemcheck</h2>
+            <p class="muted">Diese Prüfungen zeigen vor Uploads, ob der Webhost die wichtigsten technischen Voraussetzungen erfüllt.</p>
+            <div class="check-list">
+                <?php foreach ($checks as $check): ?>
+                    <div class="check-item <?= e((string) $check['status']) ?>">
+                        <span class="check-dot" aria-hidden="true"></span>
+                        <div>
+                            <strong><?= e((string) $check['label']) ?></strong>
+                            <span class="muted"><?= e((string) $check['value']) ?> · <?= e((string) $check['detail']) ?></span>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Betrieb</h2>
+            <p class="muted">Technischer Status für Installation, Wartung und spätere Übergabe an IT-Verantwortliche.</p>
+            <div class="definition-grid">
+                <div><strong>PHP-Version</strong><span><?= e(PHP_VERSION) ?></span></div>
+                <div><strong>Datenverzeichnis</strong><span><?= e($model['dataRootStatus']) ?></span></div>
+                <div><strong>Textabschnitte</strong><span><?= e((string) count($model['chunks'])) ?></span></div>
+                <div><strong>Anbieter</strong><span><?= e((string) $model['modelProvider']['label']) ?></span></div>
+            </div>
+            <?php admin_render_model_test_form($model, 'margin-top:18px'); ?>
         </div>
     </div>
     <?php
@@ -276,14 +295,14 @@ function admin_render_knowledge_upload_card(array $uploadResults): void
     ?>
     <div class="card">
         <h2>Wissensbasis erweitern</h2>
-        <p class="muted">Neue Dateien werden in Textabschnitte umgewandelt. Mit JavaScript läuft der Upload als Warteschlange Datei für Datei; ohne JavaScript verarbeitet der Server die Mehrfachauswahl klassisch in einem Request.</p>
+        <p class="muted">Neue Dateien werden in Textabschnitte umgewandelt. Mit JavaScript läuft der Upload als Warteschlange Datei für Datei inklusive Serverstatus; ohne JavaScript verarbeitet der Server die Mehrfachauswahl klassisch in einem Request.</p>
         <form method="post" action="<?= e(admin_section_url('knowledge')) ?>" enctype="multipart/form-data" class="stack upload-form" data-upload-queue data-working-label="Dateien werden verarbeitet ...">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="upload_documents">
             <div class="upload-dropzone" data-upload-dropzone>
                 <div class="upload-dropzone-copy">
                     <h3>Dateien hinzufügen</h3>
-                    <p class="muted">PDF, TXT oder Markdown hier hineinziehen oder über den Button auswählen. Große PDFs können mehrere Minuten pro Datei benötigen.</p>
+                    <p class="muted">PDF, TXT oder Markdown hier hineinziehen oder über den Button auswählen. Große PDFs werden erkannt und können mehrere Minuten pro Datei benötigen.</p>
                 </div>
                 <div class="actions">
                     <label class="btn btn-secondary" for="knowledge-documents">Dateien auswählen</label>

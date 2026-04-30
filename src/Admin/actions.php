@@ -24,7 +24,7 @@ function admin_handle_request(): array
         if ($csrfValid && admin_post_action() === 'setup_password') {
             admin_action_setup_password($state);
         }
-        if (admin_is_async_admin_request()) {
+        if (admin_is_async_admin_request() || admin_is_async_status_request()) {
             admin_set_message($state, 'error', 'Bitte zuerst das Admin-Passwort einrichten.');
             admin_json_action_response($state, 403);
         }
@@ -35,11 +35,15 @@ function admin_handle_request(): array
         if ($csrfValid && admin_post_action() === 'login') {
             admin_action_login($state);
         }
-        if (admin_is_async_admin_request()) {
+        if (admin_is_async_admin_request() || admin_is_async_status_request()) {
             admin_set_message($state, 'error', 'Die Admin-Sitzung ist abgelaufen. Bitte neu anmelden.');
             admin_json_action_response($state, 401);
         }
         return $state;
+    }
+
+    if (admin_is_async_status_request()) {
+        admin_action_upload_job_status();
     }
 
     if (!$csrfValid || $_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -113,6 +117,12 @@ function admin_is_async_upload_request(): bool
     return admin_is_async_admin_request() && admin_post_action() === 'upload_documents';
 }
 
+function admin_is_async_status_request(): bool
+{
+    return $_SERVER['REQUEST_METHOD'] === 'GET'
+        && (string) ($_GET['async_status'] ?? '') === 'upload_job';
+}
+
 function admin_json_action_response(array $state, int $status = 200): never
 {
     json_response([
@@ -121,7 +131,24 @@ function admin_json_action_response(array $state, int $status = 200): never
         'message' => (string) ($state['message'] ?? ''),
         'uploadResults' => is_array($state['uploadResults'] ?? null) ? $state['uploadResults'] : [],
         'chunkCount' => chunk_count(),
+        'jobId' => (string) ($state['jobId'] ?? ''),
     ], $status);
+}
+
+function admin_action_upload_job_status(): never
+{
+    $jobId = admin_normalize_upload_job_id((string) ($_GET['job_id'] ?? ''));
+    if ($jobId === null) {
+        json_response(['ok' => false, 'message' => 'Ungültige Job-ID.'], 400);
+    }
+
+    $status = admin_upload_job_read($jobId);
+    if ($status === []) {
+        json_response(['ok' => false, 'message' => 'Jobstatus wurde nicht gefunden.'], 404);
+    }
+
+    $status['ok'] = true;
+    json_response($status);
 }
 
 function admin_set_message(array &$state, string $type, string $text): void
@@ -232,7 +259,12 @@ function admin_action_test_model_provider(array &$state, array $apiConfig): void
     }
 
     $gateway = model_gateway($apiConfig);
-    $result = $gateway->testConnection();
+    try {
+        $result = $gateway->testConnection();
+    } catch (Throwable $exception) {
+        admin_set_message($state, 'error', $gateway->providerLabel() . ' ist nicht erreichbar: ' . $exception->getMessage());
+        return;
+    }
     if ($result['ok'] ?? false) {
         $answer = trim((string) ($result['text'] ?? 'ok'));
         if ($answer === '') {
@@ -338,12 +370,17 @@ function admin_action_upload_documents(array &$state, array $apiConfig, array $p
 
 function admin_action_upload_documents_async(array &$state, array $apiConfig, array $project): void
 {
+    $jobId = admin_normalize_upload_job_id((string) ($_POST['job_id'] ?? '')) ?? admin_create_upload_job_id();
+    admin_upload_job_cleanup();
+
     if (!api_key_is_configured($apiConfig)) {
         admin_set_message($state, 'error', 'Bitte zuerst einen gültigen API-Schlüssel hinterlegen.');
+        admin_upload_job_update($jobId, 'error', 100, $state['message'], ['status' => 'error']);
         return;
     }
     if (!project_profile_is_configured($project)) {
         admin_set_message($state, 'error', 'Bitte zuerst Titel und Themenfeld speichern.');
+        admin_upload_job_update($jobId, 'error', 100, $state['message'], ['status' => 'error']);
         return;
     }
 
@@ -351,13 +388,19 @@ function admin_action_upload_documents_async(array &$state, array $apiConfig, ar
     $files = array_values(array_filter($files, static fn(array $file): bool => ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE));
     if ($files === []) {
         admin_set_message($state, 'error', 'Bitte mindestens eine Datei auswählen.');
+        admin_upload_job_update($jobId, 'error', 100, $state['message'], ['status' => 'error']);
         return;
     }
 
     $successCount = 0;
     foreach ($files as $file) {
-        $result = admin_process_uploaded_document_safely($file, $project, $apiConfig);
+        admin_upload_job_start($jobId, (string) ($file['name'] ?? 'Datei'), (int) ($file['size'] ?? 0));
+        $progress = static function (string $stage, int $percent, string $message) use ($jobId): void {
+            admin_upload_job_update($jobId, $stage, $percent, $message);
+        };
+        $result = admin_process_uploaded_document_safely($file, $project, $apiConfig, $progress);
         $state['uploadResults'][] = $result;
+        admin_upload_job_finish($jobId, $result);
         if ($result['ok'] ?? false) {
             $successCount++;
             $project['documents'][] = $result['document'];
@@ -383,6 +426,7 @@ function admin_action_upload_documents_async(array &$state, array $apiConfig, ar
             ? 'Datei verarbeitet. Die Warteschlange fährt mit der nächsten Datei fort.'
             : $successCount . ' Datei(en) verarbeitet. Die Warteschlange fährt fort.'
     );
+    $state['jobId'] = $jobId;
 }
 
 function admin_action_finalize_upload_queue(array &$state, array $apiConfig): void
@@ -416,10 +460,10 @@ function admin_action_regenerate_profile(array &$state, array $apiConfig, array 
     admin_set_message($state, 'error', $regen['error'] ?? 'Profil konnte nicht regeneriert werden.');
 }
 
-function admin_process_uploaded_document_safely(array $file, array $project, array $apiConfig): array
+function admin_process_uploaded_document_safely(array $file, array $project, array $apiConfig, ?callable $onProgress = null): array
 {
     try {
-        return process_uploaded_document($file, $project, $apiConfig);
+        return process_uploaded_document($file, $project, $apiConfig, $onProgress);
     } catch (Throwable $exception) {
         return [
             'ok' => false,

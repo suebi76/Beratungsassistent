@@ -63,6 +63,9 @@ final class OpenAiCompatibleProvider implements ModelProvider
         if (!api_key_is_configured($this->apiConfig)) {
             return ['ok' => false, 'error' => 'OpenAI-kompatibler Endpunkt ist nicht vollständig konfiguriert.'];
         }
+        if (!function_exists('curl_init')) {
+            return ['ok' => false, 'error' => 'PHP-cURL ist nicht aktiviert. Bitte die PHP-Erweiterung curl auf dem Server aktivieren.'];
+        }
 
         $messages = $this->contentsToMessages($request->contents(), $request->systemInstruction());
         $payload = $this->buildPayload($messages, $request->options(), true);
@@ -193,6 +196,10 @@ final class OpenAiCompatibleProvider implements ModelProvider
 
     private function postJson(string $path, array $payload, int $timeout): array
     {
+        if (!function_exists('curl_init')) {
+            return ['ok' => false, 'error' => 'PHP-cURL ist nicht aktiviert. Bitte die PHP-Erweiterung curl auf dem Server aktivieren.'];
+        }
+
         $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($json === false) {
             return ['ok' => false, 'error' => 'Modellanfrage konnte nicht als JSON erzeugt werden.'];

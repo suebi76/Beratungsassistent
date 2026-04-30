@@ -98,7 +98,7 @@ function admin_render_wizard_documents_form(): void
         <div class="dropzone upload-dropzone stack" data-upload-dropzone>
             <div class="upload-dropzone-copy">
                 <h3>Dateien für die Wissensbasis</h3>
-                <p class="muted">Laden Sie eine oder mehrere Dateien hoch oder ziehen Sie sie direkt in diesen Bereich. Daraus werden Textabschnitte, Vorlagen und Beispielaufgaben erzeugt.</p>
+                <p class="muted">Laden Sie eine oder mehrere Dateien hoch oder ziehen Sie sie direkt in diesen Bereich. Die Warteschlange zeigt pro Datei den Serverstatus.</p>
             </div>
             <div class="actions">
                 <label class="btn btn-secondary" for="wizard-documents">Dateien auswählen</label>

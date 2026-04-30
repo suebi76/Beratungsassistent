@@ -13,6 +13,18 @@
         return `${value.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
     };
 
+    const createJobId = () => {
+        const bytes = new Uint8Array(12);
+        if (window.crypto?.getRandomValues) {
+            window.crypto.getRandomValues(bytes);
+        } else {
+            bytes.forEach((_, index) => {
+                bytes[index] = Math.floor(Math.random() * 256);
+            });
+        }
+        return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    };
+
     document.querySelectorAll('[data-auto-submit]').forEach((control) => {
         control.addEventListener('change', () => control.form?.submit());
     });
@@ -50,9 +62,14 @@
             return;
         }
 
+        const actionUrl = form.getAttribute('action') || window.location.href;
+        const statusUrl = new URL(actionUrl, window.location.href);
+        statusUrl.search = '';
+
         const updateProgress = () => {
-            const done = queue.filter((item) => item.status === 'done' || item.status === 'error').length;
-            const percent = queue.length > 0 ? Math.round((done / queue.length) * 100) : 0;
+            const percent = queue.length > 0
+                ? Math.round(queue.reduce((sum, item) => sum + (item.percent || 0), 0) / queue.length)
+                : 0;
             progress.style.width = `${percent}%`;
         };
 
@@ -91,6 +108,13 @@
                     });
                     row.append(remove);
                 }
+                const itemProgress = document.createElement('div');
+                itemProgress.className = 'upload-item-progress';
+                itemProgress.setAttribute('aria-hidden', 'true');
+                const itemProgressBar = document.createElement('span');
+                itemProgressBar.style.width = `${item.percent || 0}%`;
+                itemProgress.append(itemProgressBar);
+                row.append(itemProgress);
 
                 list.append(row);
             });
@@ -116,11 +140,16 @@
                 if (duplicate) {
                     return;
                 }
+                const isLargePdf = file.name.toLowerCase().endsWith('.pdf') && file.size >= 8 * 1024 * 1024;
                 queue.push({
                     file,
+                    jobId: createJobId(),
+                    percent: 0,
                     status: 'waiting',
                     statusLabel: 'Wartet',
-                    detail: 'bereit zur Verarbeitung',
+                    detail: isLargePdf
+                        ? 'große PDF erkannt, die Verarbeitung kann mehrere Minuten dauern'
+                        : 'bereit zur Verarbeitung',
                 });
             });
             input.value = '';
@@ -149,7 +178,7 @@
         });
 
         const postFormData = async (formData) => {
-            const response = await fetch(form.getAttribute('action') || window.location.href, {
+            const response = await fetch(actionUrl, {
                 method: 'POST',
                 body: formData,
                 credentials: 'same-origin',
@@ -167,28 +196,64 @@
             return payload;
         };
 
+        const pollJobStatus = async (item) => {
+            const url = new URL(statusUrl.toString());
+            url.searchParams.set('async_status', 'upload_job');
+            url.searchParams.set('job_id', item.jobId);
+            const response = await fetch(url.toString(), {
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'fetch' },
+            });
+            if (!response.ok) {
+                return;
+            }
+            const payload = await response.json();
+            if (!payload.ok) {
+                return;
+            }
+
+            item.percent = typeof payload.percent === 'number' ? payload.percent : item.percent;
+            item.detail = payload.message || item.detail;
+            if (payload.status === 'running') {
+                item.status = 'processing';
+                item.statusLabel = 'Verarbeitet';
+            }
+            renderQueue();
+        };
+
         const uploadItem = async (item) => {
             item.status = 'processing';
             item.statusLabel = 'Verarbeitet';
+            item.percent = Math.max(item.percent || 0, 2);
             item.detail = 'Upload läuft, anschließend verarbeitet die KI die Datei.';
             renderQueue();
+
+            let pollTimer = window.setInterval(() => {
+                pollJobStatus(item).catch(() => {});
+            }, 1500);
 
             const formData = new FormData();
             formData.append('csrf_token', csrf.value);
             formData.append('action', 'upload_documents');
             formData.append('async_upload', '1');
+            formData.append('job_id', item.jobId);
             formData.append('documents[]', item.file, item.file.name);
-            const payload = await postFormData(formData);
-            const result = Array.isArray(payload.uploadResults) ? payload.uploadResults[0] : null;
-            if (!payload.ok || !result || !result.ok) {
-                throw new Error(result?.error || payload.message || 'Datei konnte nicht verarbeitet werden.');
-            }
+            try {
+                const payload = await postFormData(formData);
+                const result = Array.isArray(payload.uploadResults) ? payload.uploadResults[0] : null;
+                if (!payload.ok || !result || !result.ok) {
+                    throw new Error(result?.error || payload.message || 'Datei konnte nicht verarbeitet werden.');
+                }
 
-            const chunkCount = Array.isArray(result.saved_chunks) ? result.saved_chunks.length : 0;
-            item.status = 'done';
-            item.statusLabel = 'Fertig';
-            item.detail = `${chunkCount} Textabschnitt(e) erzeugt`;
-            renderQueue();
+                const chunkCount = Array.isArray(result.saved_chunks) ? result.saved_chunks.length : 0;
+                item.status = 'done';
+                item.statusLabel = 'Fertig';
+                item.percent = 100;
+                item.detail = `${chunkCount} Textabschnitt(e) erzeugt`;
+                renderQueue();
+            } finally {
+                window.clearInterval(pollTimer);
+            }
         };
 
         const finalizeQueue = async () => {
@@ -246,6 +311,7 @@
                 } catch (error) {
                     item.status = 'error';
                     item.statusLabel = 'Fehler';
+                    item.percent = 100;
                     item.detail = error instanceof Error ? error.message : 'Unbekannter Fehler.';
                     errorsThisRun += 1;
                     renderQueue();

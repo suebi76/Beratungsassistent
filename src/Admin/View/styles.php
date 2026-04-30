@@ -199,6 +199,30 @@ function admin_render_styles(): void
             border-bottom: 1px solid #e8eeeb;
         }
         .definition-grid span { color: var(--color-muted); }
+        .check-list { display: grid; gap: 10px; margin-top: 16px; }
+        .check-item {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 10px;
+            align-items: start;
+            border: 1px solid #e3eae7;
+            border-radius: 16px;
+            padding: 12px;
+            background: #fbfdfc;
+        }
+        .check-item > div { display: grid; gap: 3px; }
+        .check-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 999px;
+            margin-top: 4px;
+            background: var(--color-muted);
+        }
+        .check-item.ok .check-dot { background: var(--color-success); }
+        .check-item.warning .check-dot { background: var(--color-accent); }
+        .check-item.error .check-dot { background: var(--color-danger); }
+        .check-item.error { border-color: #f1b0a8; background: #fff8f7; }
+        .check-item.warning { border-color: rgba(199, 91, 18, .32); background: #fffaf3; }
         .stepper { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 20px; }
         .step { padding: 8px 12px; border-radius: 999px; font-size: 13px; font-weight: 800; background: #edf3f1; color: #56656f; }
         .step.active { background: var(--color-text); color: white; }
@@ -294,6 +318,21 @@ function admin_render_styles(): void
         .upload-item.processing .upload-status { background: rgba(199, 91, 18, .14); color: #7a3a0d; }
         .upload-item.done .upload-status { background: var(--color-success-bg); color: var(--color-success); }
         .upload-item.error .upload-status { background: var(--color-danger-bg); color: var(--color-danger); }
+        .upload-item-progress {
+            grid-column: 1 / -1;
+            height: 6px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: #e9f0ed;
+        }
+        .upload-item-progress span {
+            display: block;
+            width: 0;
+            height: 100%;
+            border-radius: inherit;
+            background: var(--color-primary);
+            transition: width .2s ease;
+        }
         .upload-remove {
             border: 0;
             background: transparent;

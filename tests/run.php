@@ -5,6 +5,8 @@ $testRoot = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'beratungsassistent-test-
 putenv('BERATUNGSASSISTENT_DATA_DIR=' . $testRoot);
 
 require __DIR__ . '/../lib/app.php';
+require __DIR__ . '/../src/Admin/upload_jobs.php';
+require __DIR__ . '/../src/Admin/system_check.php';
 require __DIR__ . '/../src/Admin/actions.php';
 
 function test_assert(bool $condition, string $message): void
@@ -133,6 +135,18 @@ try {
     test_assert(api_key_is_configured($openAiConfig), 'OpenAI-kompatibler Endpunkt sollte ohne Token als konfiguriert gelten.');
     test_assert(model_gateway($openAiConfig)->providerId() === 'openai_compatible', 'OpenAI-kompatibler Provider wurde nicht ausgewählt.');
     test_assert(model_gateway($openAiConfig)->capabilities()['pdf_input'] === false, 'OpenAI-kompatibler Provider sollte PDF-Direktinput nicht melden.');
+
+    $jobId = admin_create_upload_job_id();
+    admin_upload_job_start($jobId, 'test.txt', 123);
+    admin_upload_job_update($jobId, 'model_processing', 45, 'KI verarbeitet die Datei.');
+    $jobStatus = admin_upload_job_read($jobId);
+    test_assert($jobStatus['job_id'] === $jobId, 'Upload-Jobstatus sollte die Job-ID speichern.');
+    test_assert($jobStatus['percent'] === 45, 'Upload-Jobstatus sollte Fortschritt speichern.');
+    test_assert($jobStatus['message'] === 'KI verarbeitet die Datei.', 'Upload-Jobstatus sollte Meldungen speichern.');
+
+    $checks = admin_system_check_items(['apiConfig' => $openAiConfig]);
+    test_assert($checks !== [], 'Systemcheck sollte Prüfpunkte liefern.');
+    test_assert((bool) array_filter($checks, static fn(array $item): bool => ($item['label'] ?? '') === 'PHP-Erweiterung cURL'), 'Systemcheck sollte cURL prüfen.');
 
     file_put_contents(chunks_dir() . '/eins.md', build_chunk_markdown(['title' => 'Eins'], 'Inhalt eins'));
     file_put_contents(chunks_dir() . '/zwei.md', build_chunk_markdown(['title' => 'Zwei'], 'Inhalt zwei'));
