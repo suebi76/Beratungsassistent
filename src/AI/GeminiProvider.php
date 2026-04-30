@@ -62,6 +62,24 @@ final class GeminiProvider implements ModelProvider
             . ':streamGenerateContent?alt=sse';
 
         $buffer = '';
+        $emittedText = false;
+        $emitPayload = static function (string $payload) use ($onDelta, &$emittedText): void {
+            $payload = trim($payload);
+            if ($payload === '' || $payload === '[DONE]') {
+                return;
+            }
+
+            $decoded = json_decode($payload, true);
+            if (!is_array($decoded)) {
+                return;
+            }
+
+            $text = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? '';
+            if (is_string($text) && $text !== '') {
+                $emittedText = true;
+                $onDelta($text);
+            }
+        };
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_POST => true,
@@ -69,7 +87,7 @@ final class GeminiProvider implements ModelProvider
             CURLOPT_RETURNTRANSFER => false,
             CURLOPT_HTTPHEADER => gemini_api_headers($this->apiConfig),
             CURLOPT_TIMEOUT => $request->options()['timeout'] ?? 120,
-            CURLOPT_WRITEFUNCTION => static function ($ch, $data) use ($onDelta, &$buffer) {
+            CURLOPT_WRITEFUNCTION => static function ($ch, $data) use (&$buffer, $emitPayload) {
                 $buffer .= $data;
                 $lines = explode("\n", $buffer);
                 $buffer = array_pop($lines) ?: '';
@@ -80,20 +98,7 @@ final class GeminiProvider implements ModelProvider
                         continue;
                     }
 
-                    $payload = trim(substr($line, 5));
-                    if ($payload === '' || $payload === '[DONE]') {
-                        continue;
-                    }
-
-                    $decoded = json_decode($payload, true);
-                    if (!is_array($decoded)) {
-                        continue;
-                    }
-
-                    $text = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? '';
-                    if (is_string($text) && $text !== '') {
-                        $onDelta($text);
-                    }
+                    $emitPayload(substr($line, 5));
                 }
 
                 return strlen($data);
@@ -111,6 +116,17 @@ final class GeminiProvider implements ModelProvider
 
         if ($status >= 400) {
             return ['ok' => false, 'error' => 'Gemini-Streaming fehlgeschlagen (HTTP ' . $status . ').', 'status' => $status];
+        }
+
+        foreach (explode("\n", $buffer) as $line) {
+            $line = trim($line);
+            if (str_starts_with($line, 'data:')) {
+                $emitPayload(substr($line, 5));
+            }
+        }
+
+        if (!$emittedText) {
+            return ['ok' => false, 'error' => 'Gemini hat keine verwertbare Streaming-Antwort geliefert. Bitte erneut versuchen oder vorübergehend ein anderes Modell wählen.'];
         }
 
         return ['ok' => true];

@@ -75,6 +75,26 @@ final class OpenAiCompatibleProvider implements ModelProvider
         }
 
         $buffer = '';
+        $emittedText = false;
+        $emitPayload = static function (string $payload) use ($onDelta, &$emittedText): void {
+            $payload = trim($payload);
+            if ($payload === '' || $payload === '[DONE]') {
+                return;
+            }
+
+            $decoded = json_decode($payload, true);
+            if (!is_array($decoded)) {
+                return;
+            }
+
+            $text = $decoded['choices'][0]['delta']['content']
+                ?? $decoded['choices'][0]['message']['content']
+                ?? '';
+            if (is_string($text) && $text !== '') {
+                $emittedText = true;
+                $onDelta($text);
+            }
+        };
         $ch = curl_init($this->endpoint('/chat/completions'));
         curl_setopt_array($ch, [
             CURLOPT_POST => true,
@@ -82,7 +102,7 @@ final class OpenAiCompatibleProvider implements ModelProvider
             CURLOPT_RETURNTRANSFER => false,
             CURLOPT_HTTPHEADER => $this->headers(),
             CURLOPT_TIMEOUT => $request->options()['timeout'] ?? 120,
-            CURLOPT_WRITEFUNCTION => static function ($ch, $data) use (&$buffer, $onDelta) {
+            CURLOPT_WRITEFUNCTION => static function ($ch, $data) use (&$buffer, $emitPayload) {
                 $buffer .= $data;
                 $lines = explode("\n", $buffer);
                 $buffer = array_pop($lines) ?: '';
@@ -93,22 +113,7 @@ final class OpenAiCompatibleProvider implements ModelProvider
                         continue;
                     }
 
-                    $payload = trim(substr($line, 5));
-                    if ($payload === '' || $payload === '[DONE]') {
-                        continue;
-                    }
-
-                    $decoded = json_decode($payload, true);
-                    if (!is_array($decoded)) {
-                        continue;
-                    }
-
-                    $text = $decoded['choices'][0]['delta']['content']
-                        ?? $decoded['choices'][0]['message']['content']
-                        ?? '';
-                    if (is_string($text) && $text !== '') {
-                        $onDelta($text);
-                    }
+                    $emitPayload(substr($line, 5));
                 }
 
                 return strlen($data);
@@ -126,6 +131,17 @@ final class OpenAiCompatibleProvider implements ModelProvider
 
         if ($status >= 400) {
             return ['ok' => false, 'error' => 'OpenAI-kompatibles Streaming fehlgeschlagen (HTTP ' . $status . ').', 'status' => $status];
+        }
+
+        foreach (explode("\n", $buffer) as $line) {
+            $line = trim($line);
+            if (str_starts_with($line, 'data:')) {
+                $emitPayload(substr($line, 5));
+            }
+        }
+
+        if (!$emittedText) {
+            return ['ok' => false, 'error' => 'Der OpenAI-kompatible Endpunkt lieferte keine verwertbare Streaming-Antwort.'];
         }
 
         return ['ok' => true];
