@@ -9,14 +9,19 @@ function process_uploaded_document(array $file, array $project, array $apiConfig
         return ['ok' => false, 'error' => $validation['error'] ?? 'Datei konnte nicht validiert werden.'];
     }
 
+    $pdfAdvice = null;
+    if ((string) $validation['extension'] === 'pdf') {
+        $pdfAdvice = pdf_split_advice_for_file((string) $file['name'], (int) ($file['size'] ?? 0), (string) ($file['tmp_name'] ?? ''));
+    }
+
     document_ingestion_progress($onProgress, 'storing', 18, 'Datei wird gespeichert.');
     $stored = store_uploaded_file($file);
     if (!($stored['ok'] ?? false)) {
         return ['ok' => false, 'error' => $stored['error'] ?? 'Datei konnte nicht gespeichert werden.'];
     }
 
-    if ((string) $validation['extension'] === 'pdf' && (int) ($file['size'] ?? 0) >= 8 * 1024 * 1024) {
-        document_ingestion_progress($onProgress, 'large_pdf', 22, 'Große PDF erkannt. Die Verarbeitung kann mehrere Minuten dauern.');
+    if ($pdfAdvice !== null && !empty($pdfAdvice['large_pdf'])) {
+        document_ingestion_progress($onProgress, 'large_pdf', 22, (string) $pdfAdvice['message']);
     }
 
     document_ingestion_progress($onProgress, 'preparing', 28, 'Datei wird für die KI-Verarbeitung vorbereitet.');
@@ -37,17 +42,36 @@ function process_uploaded_document(array $file, array $project, array $apiConfig
             'ok' => false,
             'error' => $generation['error'] ?? 'Gemini konnte die Datei nicht verarbeiten.',
             'stored_name' => $stored['stored_name'],
+            'pdf_split_advice' => $pdfAdvice,
         ];
     }
 
     document_ingestion_progress($onProgress, 'saving_chunks', 84, 'Textabschnitte werden gespeichert.');
     $savedChunks = save_chunks_from_response((string) $generation['text'], (string) $file['name'], (string) $validation['extension']);
     if ($savedChunks === []) {
+        $error = 'Gemini hat keine verwertbaren Chunks geliefert. Bitte die Datei erneut hochladen oder als kleinere Teildateien bereitstellen.';
+        if ($pdfAdvice !== null && !empty($pdfAdvice['message'])) {
+            $error .= ' ' . (string) $pdfAdvice['message'];
+        }
         return [
             'ok' => false,
-            'error' => 'Gemini hat keine verwertbaren Chunks geliefert. Bitte die Datei erneut hochladen oder als kleinere Teildateien bereitstellen.',
+            'error' => $error,
             'stored_name' => $stored['stored_name'],
+            'pdf_split_advice' => $pdfAdvice,
         ];
+    }
+
+    $document = [
+        'original_name' => (string) $file['name'],
+        'stored_name' => $stored['stored_name'],
+        'mime_type' => (string) $validation['mime'],
+        'extension' => (string) $validation['extension'],
+        'bytes' => (int) ($file['size'] ?? 0),
+        'uploaded_at' => now_iso(),
+        'chunks_created' => count($savedChunks),
+    ];
+    if ($pdfAdvice !== null) {
+        $document['pdf_analysis'] = pdf_split_document_metadata($pdfAdvice);
     }
 
     document_ingestion_progress($onProgress, 'done', 96, count($savedChunks) . ' Textabschnitt(e) erzeugt.');
@@ -55,15 +79,8 @@ function process_uploaded_document(array $file, array $project, array $apiConfig
         'ok' => true,
         'stored_name' => $stored['stored_name'],
         'saved_chunks' => $savedChunks,
-        'document' => [
-            'original_name' => (string) $file['name'],
-            'stored_name' => $stored['stored_name'],
-            'mime_type' => (string) $validation['mime'],
-            'extension' => (string) $validation['extension'],
-            'bytes' => (int) ($file['size'] ?? 0),
-            'uploaded_at' => now_iso(),
-            'chunks_created' => count($savedChunks),
-        ],
+        'document' => $document,
+        'pdf_split_advice' => $pdfAdvice,
     ];
 }
 

@@ -36,6 +36,7 @@ function admin_render_active_section(array $model): void
                 <?php admin_render_knowledge_upload_card($model['uploadResults']); ?>
                 <?php admin_render_document_overview_card($model['project'], $model['chunks']); ?>
             </div>
+            <?php admin_render_pdf_split_guidance_card(); ?>
             <?php
             break;
         case 'chunks':
@@ -340,10 +341,38 @@ function admin_render_knowledge_upload_card(array $uploadResults): void
                             <strong>Fehler</strong><br>
                             <span class="muted"><?= e($result['error'] ?? '') ?></span>
                         <?php endif; ?>
+                        <?php if (!empty($result['pdf_split_advice']['message'])): ?>
+                            <p class="muted" style="margin:8px 0 0"><?= e((string) $result['pdf_split_advice']['message']) ?></p>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
+    </div>
+    <?php
+}
+
+function admin_render_pdf_split_guidance_card(): void
+{
+    ?>
+    <div class="card pdf-split-planner" data-pdf-split-planner>
+        <h2>Große PDF vorbereiten</h2>
+        <p class="muted">Diese Hilfe berechnet die spätere Split-Logik: Seiten pro Teil, Anzahl der Teile und logische Dateinamen. Die PDF wird hier noch nicht geteilt; der nächste technische Schritt ist ein geprüfter Browser-, Server- oder Portable-Splitter.</p>
+        <div class="grid two">
+            <div>
+                <label>Originaldateiname</label>
+                <input type="text" value="beispieldokument.pdf" data-pdf-split-name>
+            </div>
+            <div>
+                <label>Gesamtseiten</label>
+                <input type="number" min="1" step="1" value="200" data-pdf-split-pages>
+            </div>
+            <div>
+                <label>Seiten pro Teil</label>
+                <input type="number" min="<?= e((string) PDF_SPLIT_MIN_PAGES_PER_PART) ?>" max="<?= e((string) PDF_SPLIT_MAX_PAGES_PER_PART) ?>" step="1" value="<?= e((string) pdf_split_default_pages_per_part(400)) ?>" data-pdf-split-size>
+            </div>
+        </div>
+        <div class="split-preview" data-pdf-split-output role="status" aria-live="polite"></div>
     </div>
     <?php
 }

@@ -25,6 +25,66 @@
         return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
     };
 
+    const safePdfBase = (name) => {
+        const raw = (name || 'dokument.pdf').replace(/\.[^.]+$/, '').trim().toLowerCase();
+        return raw
+            .replaceAll('ä', 'ae')
+            .replaceAll('ö', 'oe')
+            .replaceAll('ü', 'ue')
+            .replaceAll('ß', 'ss')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '') || 'dokument';
+    };
+
+    const splitPartName = (name, part, start, end, pageCount) => {
+        const width = Math.max(3, String(Math.max(1, pageCount || end)).length);
+        const pad = (value, size) => String(value).padStart(size, '0');
+        return `${safePdfBase(name)}_teil-${pad(part, 3)}_seiten-${pad(start, width)}-${pad(end, width)}.pdf`;
+    };
+
+    document.querySelectorAll('[data-pdf-split-planner]').forEach((planner) => {
+        const nameInput = planner.querySelector('[data-pdf-split-name]');
+        const pagesInput = planner.querySelector('[data-pdf-split-pages]');
+        const sizeInput = planner.querySelector('[data-pdf-split-size]');
+        const output = planner.querySelector('[data-pdf-split-output]');
+        if (!nameInput || !pagesInput || !sizeInput || !output) {
+            return;
+        }
+
+        const renderSplitPlan = () => {
+            const pageCount = Math.max(1, Number.parseInt(pagesInput.value, 10) || 1);
+            const pagesPerPart = Math.max(1, Math.min(500, Number.parseInt(sizeInput.value, 10) || 25));
+            const partCount = Math.ceil(pageCount / pagesPerPart);
+            const names = [];
+            for (let part = 1; part <= partCount; part += 1) {
+                const start = ((part - 1) * pagesPerPart) + 1;
+                const end = Math.min(pageCount, start + pagesPerPart - 1);
+                names.push(splitPartName(nameInput.value, part, start, end, pageCount));
+            }
+            const visibleNames = partCount > 8
+                ? [...names.slice(0, 5), '...', names[names.length - 1]]
+                : names;
+            output.replaceChildren();
+            const summary = document.createElement('strong');
+            summary.textContent = `${partCount} Teil-Datei(en) mit je ${pagesPerPart} Seiten geplant.`;
+            const hint = document.createElement('p');
+            hint.className = 'muted';
+            hint.textContent = 'Die Namen werden später für Server-, Browser- oder Portable-Splitting identisch verwendet.';
+            const list = document.createElement('ul');
+            visibleNames.forEach((fileName) => {
+                const item = document.createElement('li');
+                item.textContent = fileName;
+                list.append(item);
+            });
+            output.append(summary, hint, list);
+        };
+
+        [nameInput, pagesInput, sizeInput].forEach((input) => {
+            input.addEventListener('input', renderSplitPlan);
+        });
+        renderSplitPlan();
+    });
+
     document.querySelectorAll('[data-auto-submit]').forEach((control) => {
         control.addEventListener('change', () => control.form?.submit());
     });
@@ -148,7 +208,7 @@
                     status: 'waiting',
                     statusLabel: 'Wartet',
                     detail: isLargePdf
-                        ? 'große PDF erkannt, die Verarbeitung kann mehrere Minuten dauern'
+                        ? 'große PDF erkannt; falls die Verarbeitung abbricht, vorher in 25-Seiten-Teile splitten'
                         : 'bereit zur Verarbeitung',
                 });
             });

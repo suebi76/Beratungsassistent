@@ -341,6 +341,20 @@ function admin_render_styles(): void
             font-weight: 800;
             cursor: pointer;
         }
+        .pdf-split-planner { display: grid; gap: 18px; }
+        .split-preview {
+            border: 1px solid #e3eae7;
+            border-radius: 18px;
+            background: #fbfdfc;
+            padding: 16px;
+        }
+        .split-preview ul {
+            margin: 10px 0 0;
+            padding-left: 18px;
+            display: grid;
+            gap: 5px;
+        }
+        .split-preview li { font-family: var(--font-mono); font-size: 12px; color: #38444d; }
         .template-admin { display: grid; gap: 18px; }
         .template-section { display: grid; gap: 14px; border: 1px solid #e3eae7; border-radius: 18px; padding: 18px; background: #fbfcfb; }
         .template-section-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }

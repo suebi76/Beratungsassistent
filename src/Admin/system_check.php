@@ -22,6 +22,8 @@ function admin_system_check_items(array $model): array
         admin_check_item('max_execution_time', $executionTime === 0 || $executionTime >= 240 ? 'ok' : 'warning', $executionTime === 0 ? 'unbegrenzt' : $executionTime . ' Sekunden', 'Große PDFs und langsame KI-Antworten brauchen längere Laufzeit.'),
         admin_check_item('memory_limit', $memoryLimit === PHP_INT_MAX || $memoryLimit >= 128 * 1024 * 1024 ? 'ok' : 'warning', ini_get('memory_limit'), 'PDF-Verarbeitung benötigt ausreichend Speicher.'),
         admin_check_item('upload_tmp_dir', admin_upload_tmp_dir_is_usable($uploadTmpDir) ? 'ok' : 'warning', $uploadTmpDir !== '' ? $uploadTmpDir : 'Systemstandard', 'Temporäres PHP-Uploadverzeichnis muss vom Webserver nutzbar sein.'),
+        admin_check_item('PDF-Seitenzählung', 'warning', 'heuristisch', 'Ohne geprüfte PDF-Bibliothek wird die Seitenzahl nur grob aus der Datei geschätzt. Das reicht für Hinweise, nicht für verbindliches Splitten.'),
+        admin_check_item('Serverseitiges PDF-Splitting', 'warning', 'nicht aktiviert', 'Aktuell ist bewusst kein ungeprüfter PDF-Splitter aktiv. Fallbacks: lokale/browserseitige Teilung und später ein geprüftes Backend.'),
         admin_check_writable('Konfiguration beschreibbar', config_dir()),
         admin_check_writable('Uploads beschreibbar', uploads_dir()),
         admin_check_writable('Textabschnitte beschreibbar', chunks_dir()),

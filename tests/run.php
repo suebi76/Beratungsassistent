@@ -136,6 +136,16 @@ try {
     test_assert(model_gateway($openAiConfig)->providerId() === 'openai_compatible', 'OpenAI-kompatibler Provider wurde nicht ausgewählt.');
     test_assert(model_gateway($openAiConfig)->capabilities()['pdf_input'] === false, 'OpenAI-kompatibler Provider sollte PDF-Direktinput nicht melden.');
 
+    $fakePdf = "%PDF-1.4\n1 0 obj\n<< /Type /Pages >>\nendobj\n2 0 obj\n<< /Type /Page >>\nendobj\n3 0 obj\n<< /Type /Page >>\nendobj\n";
+    test_assert(pdf_estimate_page_count_from_content($fakePdf) === 2, 'PDF-Seitenschätzung sollte Page-Objekte zählen, aber Pages-Objekt ignorieren.');
+    $splitPlan = pdf_split_plan('Orientierungsrahmen Gymnasiale Oberstufe.pdf', 808, 25);
+    test_assert($splitPlan['part_count'] === 33, 'PDF-Splitplan sollte 808 Seiten in 33 Teile zu 25 Seiten teilen.');
+    test_assert($splitPlan['parts'][0]['file'] === 'orientierungsrahmen-gymnasiale-oberstufe_teil-001_seiten-001-025.pdf', 'PDF-Splitplan erzeugt keinen stabilen ersten Dateinamen.');
+    test_assert($splitPlan['parts'][32]['file'] === 'orientierungsrahmen-gymnasiale-oberstufe_teil-033_seiten-801-808.pdf', 'PDF-Splitplan erzeugt keinen stabilen letzten Dateinamen.');
+    $splitAdvice = pdf_split_advice_for_file('Orientierungsrahmen.pdf', LARGE_PDF_BYTES + 1);
+    test_assert($splitAdvice['large_pdf'] === true, 'Große PDF sollte Split-Hinweis auslösen.');
+    test_assert($splitAdvice['example_first_file'] === 'orientierungsrahmen_teil-001_seiten-001-025.pdf', 'Split-Hinweis sollte einen logischen Beispieldateinamen liefern.');
+
     $jobId = admin_create_upload_job_id();
     admin_upload_job_start($jobId, 'test.txt', 123);
     admin_upload_job_update($jobId, 'model_processing', 45, 'KI verarbeitet die Datei.');
@@ -147,6 +157,7 @@ try {
     $checks = admin_system_check_items(['apiConfig' => $openAiConfig]);
     test_assert($checks !== [], 'Systemcheck sollte Prüfpunkte liefern.');
     test_assert((bool) array_filter($checks, static fn(array $item): bool => ($item['label'] ?? '') === 'PHP-Erweiterung cURL'), 'Systemcheck sollte cURL prüfen.');
+    test_assert((bool) array_filter($checks, static fn(array $item): bool => ($item['label'] ?? '') === 'Serverseitiges PDF-Splitting'), 'Systemcheck sollte PDF-Splitting transparent ausweisen.');
 
     file_put_contents(chunks_dir() . '/eins.md', build_chunk_markdown(['title' => 'Eins'], 'Inhalt eins'));
     file_put_contents(chunks_dir() . '/zwei.md', build_chunk_markdown(['title' => 'Zwei'], 'Inhalt zwei'));
