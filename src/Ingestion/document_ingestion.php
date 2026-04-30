@@ -40,7 +40,9 @@ function process_uploaded_document(array $file, array $project, array $apiConfig
     document_ingestion_progress($onProgress, 'model_processing', 45, 'KI verarbeitet die Datei. Bitte warten.');
     $generation = model_generate_text($parts, $apiConfig, [
         'temperature' => 0.2,
-        'maxOutputTokens' => 65536,
+        'maxOutputTokens' => INGESTION_MAX_OUTPUT_TOKENS,
+        'thinkingBudget' => INGESTION_THINKING_BUDGET,
+        'fallbackModels' => ingestion_fallback_models($apiConfig, (string) $validation['extension']),
         'timeout' => 240,
         'retries' => 2,
         'retryDelaySeconds' => 4,
@@ -105,4 +107,21 @@ function document_ingestion_progress(?callable $onProgress, string $stage, int $
         return;
     }
     $onProgress($stage, $percent, $message);
+}
+
+function ingestion_fallback_models(array $apiConfig, string $extension): array
+{
+    if (normalize_model_provider((string) ($apiConfig['provider'] ?? 'gemini')) !== 'gemini') {
+        return [];
+    }
+    if (strtolower($extension) !== 'pdf') {
+        return [];
+    }
+
+    $currentModel = strtolower(trim((string) ($apiConfig['model'] ?? DEFAULT_MODEL_NAME)));
+    if ($currentModel === '' || $currentModel === INGESTION_GEMINI_FALLBACK_MODEL) {
+        return [];
+    }
+
+    return [INGESTION_GEMINI_FALLBACK_MODEL];
 }

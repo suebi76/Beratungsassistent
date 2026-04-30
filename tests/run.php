@@ -145,6 +145,17 @@ try {
     $splitAdvice = pdf_split_advice_for_file('Orientierungsrahmen.pdf', LARGE_PDF_BYTES + 1);
     test_assert($splitAdvice['large_pdf'] === true, 'Große PDF sollte Split-Hinweis auslösen.');
     test_assert($splitAdvice['example_first_file'] === 'orientierungsrahmen_teil-001_seiten-001-025.pdf', 'Split-Hinweis sollte einen logischen Beispieldateinamen liefern.');
+    test_assert(ingestion_fallback_models(['provider' => 'gemini', 'model' => 'gemini-2.5-flash'], 'pdf') === ['gemini-2.5-flash-lite'], 'PDF-Ingestion sollte Flash-Lite als Gemini-Fallback anbieten.');
+    test_assert(ingestion_fallback_models(['provider' => 'gemini', 'model' => 'gemini-2.5-flash-lite'], 'pdf') === [], 'PDF-Ingestion sollte das gleiche Fallback-Modell nicht doppelt anbieten.');
+
+    $geminiPayload = gemini_generation_payload([['text' => 'Test']], ['model' => 'gemini-2.5-flash'], [
+        'maxOutputTokens' => INGESTION_MAX_OUTPUT_TOKENS,
+        'thinkingBudget' => INGESTION_THINKING_BUDGET,
+    ]);
+    test_assert($geminiPayload['generationConfig']['maxOutputTokens'] === INGESTION_MAX_OUTPUT_TOKENS, 'Gemini-Payload sollte das Ingestion-Ausgabelimit übernehmen.');
+    test_assert(($geminiPayload['generationConfig']['thinkingConfig']['thinkingBudget'] ?? null) === INGESTION_THINKING_BUDGET, 'Gemini-Payload sollte Thinking für Flash-Ingestion steuerbar machen.');
+    $proPayload = gemini_generation_payload([['text' => 'Test']], ['model' => 'gemini-2.5-pro'], ['thinkingBudget' => 0]);
+    test_assert(!isset($proPayload['generationConfig']['thinkingConfig']), 'Gemini-Pro-Payload darf thinkingBudget 0 nicht setzen.');
 
     $uploadProbe = runtime_root('tmp/upload-probe.txt');
     file_put_contents($uploadProbe, 'gleicher Inhalt');
