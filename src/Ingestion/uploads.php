@@ -99,6 +99,24 @@ function store_uploaded_file(array $file): array
     ];
 }
 
+function delete_stored_upload_file(string $storedName): bool
+{
+    $storedName = trim($storedName);
+    if ($storedName === '' || $storedName !== basename($storedName)) {
+        return false;
+    }
+
+    $path = uploads_dir() . '/' . $storedName;
+    if (!file_exists($path)) {
+        return true;
+    }
+    if (!is_file($path)) {
+        return false;
+    }
+
+    return @unlink($path);
+}
+
 function read_text_source(string $path): string
 {
     $content = (string) @file_get_contents($path, false, null, 0, MAX_TEXT_SOURCE_BYTES);

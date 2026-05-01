@@ -48,13 +48,15 @@ function rag_dir(): string { return runtime_root('rag'); }
 function chunks_dir(): string { return runtime_root('rag/chunks'); }
 function uploads_dir(): string { return runtime_root('rag/uploads'); }
 function rate_limit_dir(): string { return runtime_root('rag/.rate-limit'); }
+function locks_dir(): string { return runtime_root('locks'); }
+function tmp_dir(): string { return runtime_root('tmp'); }
 function api_config_file(): string { return runtime_root('config/config.php'); }
 function project_config_file(): string { return runtime_root('config/project.json'); }
 function password_file(): string { return runtime_root('rag/.admin_password'); }
 
 function ensure_app_dirs(): void
 {
-    foreach ([config_dir(), rag_dir(), chunks_dir(), uploads_dir(), rate_limit_dir()] as $dir) {
+    foreach ([config_dir(), rag_dir(), chunks_dir(), uploads_dir(), rate_limit_dir(), locks_dir(), tmp_dir()] as $dir) {
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
@@ -69,4 +71,3 @@ function ensure_runtime_placeholders(): void
         }
     }
 }
-

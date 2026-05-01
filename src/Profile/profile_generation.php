@@ -86,12 +86,15 @@ function build_profile_generation_prompt(array $project, array $chunks): string
         . "- Nur Aussagen, die aus der Wissensbasis ableitbar sind.\n"
         . "- `scope_bullets`: 4 bis 6 knappe Bereiche.\n"
         . "- `quick_questions`: genau 6 kurze, realistische Nutzerfragen.\n"
+        . "- Jede Schnellfrage maximal 110 Zeichen, ohne Dateinamen, ohne Anführungszeichen, ohne Muster wie \"Was ist bei ... zu beachten?\".\n"
+        . "- Schnellfragen müssen echte Fragen sein, keine Arbeitsaufträge oder Imperative wie \"Nennen Sie\" oder \"Erläutern Sie\".\n"
+        . "- Schnellfragen beziehen sich auf das fachliche Thema, nicht auf den Assistenten, die Wissensbasis, Quellen oder die spätere Antwort.\n"
         . "- `task_examples`: genau 4 konkrete Arbeitsaufträge.\n"
-        . "- `templates`: genau 4 Sektionen mit jeweils 3 Optionen.\n"
+        . "- `templates`: genau 4 Sektionen mit jeweils 3 Optionen; kurze Sektionstitel und Button-Labels, keine verschachtelten Zitate.\n"
         . "- Die Prompts müssen unmittelbar als Beratungsfrage oder Arbeitsauftrag verwendbar sein.\n"
         . "- Keine Hinweise auf Dateinamen im UI-Text, außer es ist fachlich notwendig.\n"
         . "- Schreibe mit korrekten deutschen Umlauten und vermeide Umschreibungen wie ae, oe, ue oder ss, sofern echte Umlaute oder ß gemeint sind.\n"
-        . "- Vermeide doppelte Satzzeichen und künstlich klingende Formulierungen.";
+        . "- Vermeide doppelte Satzzeichen, Titelkopien und künstlich klingende Formulierungen.";
 }
 
 function fallback_profile(array $project, array $chunks): array
@@ -102,39 +105,10 @@ function fallback_profile(array $project, array $chunks): array
         ? 'Stellen Sie Fragen zu diesem Themenfeld: ' . $topicSentence . ' Die Antworten beziehen sich auf die im Hintergrund geladenen Dateien.'
         : 'Stellen Sie Fragen zu diesem Themenfeld. Die Antworten beziehen sich auf die im Hintergrund geladenen Dateien.';
     $titles = array_values(array_unique(array_map(
-        fn(array $chunk): string => $chunk['title'],
+        static fn(array $chunk): string => frontend_clean_ui_text((string) $chunk['title']),
         array_slice($chunks, 0, 12)
     )));
-
-    $quickQuestions = [];
-    foreach (array_slice($titles, 0, 6) as $title) {
-        $quickQuestions[] = 'Was ist bei "' . $title . '" zu beachten?';
-    }
-
-    $taskExamples = [];
-    foreach (array_slice($titles, 0, 4) as $title) {
-        $taskExamples[] = 'Fasse die wichtigsten Punkte zu "' . $title . '" für eine Beratungssituation zusammen.';
-    }
-
-    $templateOptions = [];
-    foreach (array_slice($titles, 0, 12) as $title) {
-        $templateOptions[] = [
-            'label' => mb_substr($title, 0, 34, 'UTF-8'),
-            'prompt' => 'Erläutere die wichtigsten Inhalte und Handlungsoptionen zu "' . $title . '" auf Basis der hinterlegten Wissensbasis.',
-        ];
-    }
-
-    $templates = [];
-    foreach (array_chunk($templateOptions, 3) as $idx => $group) {
-        if ($idx >= 4) {
-            break;
-        }
-        $templates[] = [
-            'title' => 'Vorlage ' . ($idx + 1),
-            'description' => 'Dokumentbasierte Fragen aus dem geladenen Wissensbestand.',
-            'options' => $group,
-        ];
-    }
+    $frontend = frontend_default_content($project, $chunks);
 
     return [
         'subtitle' => 'Konfigurierbarer Assistent für ' . $topic,
@@ -147,11 +121,11 @@ function fallback_profile(array $project, array $chunks): array
             'limitations' => ['Antworten sind nur belastbar, wenn passende Inhalte in den geladenen Dateien vorhanden sind.'],
         ],
         'frontend' => [
-            'welcome_heading' => trim((string) ($project['title'] ?? 'Beratungs-Assistent')),
+            'welcome_heading' => (string) $frontend['welcome_heading'],
             'welcome_text' => $welcomeText,
-            'quick_questions' => $quickQuestions,
-            'task_examples' => $taskExamples,
-            'templates' => $templates,
+            'quick_questions' => $frontend['quick_questions'],
+            'task_examples' => $frontend['task_examples'],
+            'templates' => $frontend['templates'],
         ],
     ];
 }
@@ -164,13 +138,13 @@ function regenerate_project_profile(array $project, array $apiConfig): array
     }
 
     $prompt = build_profile_generation_prompt($project, $chunks);
-    $generation = gemini_generate_text([['text' => $prompt]], $apiConfig, [
+    $generation = model_generate_text([['text' => $prompt]], $apiConfig, [
         'temperature' => 0.3,
         'maxOutputTokens' => 8192,
         'timeout' => 180,
         'retries' => 1,
         'retryDelaySeconds' => 3,
-    ]);
+    ], 'profile_generation');
 
     $profile = null;
     if ($generation['ok'] ?? false) {
@@ -191,7 +165,11 @@ function regenerate_project_profile(array $project, array $apiConfig): array
     );
     $project['frontend'] = merge_project_config(
         $project['frontend'],
-        is_array($profile['frontend'] ?? null) ? $profile['frontend'] : []
+        frontend_normalize_generated_content(
+            is_array($profile['frontend'] ?? null) ? $profile['frontend'] : [],
+            $project,
+            $chunks
+        )
     );
     $project['setup']['last_profile_generation_at'] = now_iso();
 

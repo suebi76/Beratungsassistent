@@ -32,6 +32,7 @@ function admin_render_page(array $model): void
             </div>
         <?php endif; ?>
     </div>
+    <?php admin_render_scripts(); ?>
     </body>
     </html>
     <?php

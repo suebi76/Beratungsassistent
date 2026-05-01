@@ -89,42 +89,24 @@ header('Cache-Control: no-cache');
 header('X-Accel-Buffering: no');
 header('Content-Encoding: none');
 
-$geminiPayload = json_encode([
-    'contents' => $contents,
-    'systemInstruction' => [
-        'parts' => [['text' => $systemPrompt]],
-    ],
-], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-
-$url = 'https://generativelanguage.googleapis.com/v1beta/models/'
-    . rawurlencode((string) ($apiConfig['model'] ?? DEFAULT_MODEL_NAME))
-    . ':streamGenerateContent?alt=sse';
-
-$ch = curl_init($url);
-curl_setopt_array($ch, [
-    CURLOPT_POST => true,
-    CURLOPT_POSTFIELDS => $geminiPayload,
-    CURLOPT_RETURNTRANSFER => false,
-    CURLOPT_HTTPHEADER => gemini_api_headers($apiConfig),
-    CURLOPT_TIMEOUT => 120,
-    CURLOPT_WRITEFUNCTION => static function ($ch, $data) {
-        echo $data;
+$streamResult = model_stream_chat(
+    $contents,
+    $systemPrompt,
+    $apiConfig,
+    static function (string $text): void {
+        echo 'data: ' . json_encode(['text' => $text], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n\n";
         if (ob_get_level()) {
             ob_flush();
         }
         flush();
-        return strlen($data);
     },
-]);
+    ['timeout' => 120]
+);
 
-$curlError = '';
-curl_exec($ch);
-if (curl_errno($ch)) {
-    $curlError = curl_error($ch);
-}
-curl_close($ch);
-
-if ($curlError !== '') {
-    echo 'data: ' . json_encode(['error' => $curlError], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n\n";
+if (!($streamResult['ok'] ?? false)) {
+    echo 'data: ' . json_encode(['error' => $streamResult['error'] ?? 'Streaming fehlgeschlagen.'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n\n";
+    flush();
+} else {
+    echo "data: [DONE]\n\n";
     flush();
 }

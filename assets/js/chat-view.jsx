@@ -1,36 +1,136 @@
 (function () {
+    const { useState } = React;
     const Icon = window.BeratungsassistentIcon;
     const { renderMarkdown } = window.BeratungsassistentMarkdown;
+    const PRIVACY_NOTICE = "Bitte keine personenbezogenen Daten eingeben.";
 
-    const EmptyChatState = ({ config, quickQuestions, onQuickQuestion }) => (
-        <div className="flex flex-col items-center justify-center h-full text-center px-4 py-8">
-            <div className="bg-white p-7 rounded-3xl shadow-sm border border-slate-200 max-w-lg w-full">
-                <div className="w-16 h-16 bg-[#0a192f] rounded-2xl flex items-center justify-center mx-auto mb-5 text-[#e50046]">
-                    <Icon name="bot" className="w-8 h-8" />
+    const safetyNotice = () => PRIVACY_NOTICE;
+
+    const ChatInput = ({
+        config,
+        input,
+        inputId = "chat-input",
+        isEmbedded = false,
+        isLoading,
+        isStreaming,
+        onInputChange,
+        onSubmit,
+    }) => (
+        <div className={isEmbedded ? "w-full" : "p-4 bg-white border-t border-slate-200 shadow-sm shrink-0"}>
+            <form onSubmit={onSubmit} className="max-w-4xl mx-auto flex gap-3">
+                <label htmlFor={inputId} className="sr-only">Frage eingeben</label>
+                <input
+                    id={inputId}
+                    type="text"
+                    value={input}
+                    onChange={(event) => onInputChange(event.target.value)}
+                    placeholder="Ihre Frage eingeben ..."
+                    aria-label="Frage eingeben"
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-sm focus:ring-2 focus:ring-[#e50046] outline-none"
+                    disabled={isLoading || isStreaming}
+                    autoComplete="off"
+                />
+                <button
+                    type="submit"
+                    disabled={isLoading || isStreaming || !input.trim()}
+                    aria-label="Nachricht senden"
+                    className="bg-[#e50046] text-white p-3 rounded-xl hover:opacity-90 disabled:opacity-30 transition-all flex items-center justify-center min-w-[52px]"
+                >
+                    <Icon name="send" className="w-5 h-5" />
+                </button>
+            </form>
+            <p className="max-w-4xl mx-auto mt-2 flex items-center gap-1.5 text-[11px] text-amber-700">
+                <Icon name="shield" className="w-3.5 h-3.5 shrink-0" />
+                <span>{safetyNotice(config)}</span>
+            </p>
+        </div>
+    );
+
+    const OrientationCard = () => (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+            {[
+                ["Antworten", "aus der geladenen Wissensbasis"],
+                ["Schnellfragen", "für den Einstieg"],
+                ["Vorlagen", "für längere Anliegen"],
+            ].map(([title, description]) => (
+                <div key={title} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="text-xs font-bold text-[#0a192f]">{title}</p>
+                    <p className="text-xs text-slate-500 mt-1">{description}</p>
                 </div>
-                <h2 className="text-slate-800 font-bold text-xl mb-1">{config?.title || "Beratungsassistent"}</h2>
-                <p className="text-xs font-bold text-[#e50046] uppercase tracking-widest mb-4">{config?.topic || "Dokumentgestützte Beratung"}</p>
-                <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-                    {config?.frontend?.welcome_text || config?.scope_summary || "Dieser Assistent beantwortet Fragen auf Basis der hinterlegten Wissensbasis."}
-                    <br/><span className="text-amber-600 font-medium">{config?.safety?.pii_notice || "Bitte keine personenbezogenen Daten eingeben."}</span>
-                </p>
-                {quickQuestions.length > 0 && (
-                    <React.Fragment>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 text-left">Schnelleinstieg:</p>
-                        <div className="space-y-2">
-                            {quickQuestions.slice(0, 6).map((question, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => onQuickQuestion(question)}
-                                    className="w-full text-left text-xs p-3 bg-slate-50 hover:bg-white border border-slate-100 hover:border-[#e50046] hover:text-[#e50046] rounded-xl transition-all font-medium text-slate-600 flex items-center gap-2.5"
-                                >
-                                    <Icon name="zap" className="w-3.5 h-3.5 shrink-0 text-[#e50046]" />
-                                    {question}
-                                </button>
-                            ))}
-                        </div>
-                    </React.Fragment>
-                )}
+            ))}
+        </div>
+    );
+
+    const QuickQuestions = ({ quickQuestions, onQuickQuestion }) => {
+        const [expanded, setExpanded] = useState(false);
+        const questions = Array.isArray(quickQuestions) ? quickQuestions : [];
+        const visibleQuestions = expanded ? questions : questions.slice(0, 4);
+
+        if (questions.length === 0) {
+            return null;
+        }
+
+        return (
+            <section className="text-left">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Schnellfragen</p>
+                    {questions.length > 4 && (
+                        <button
+                            type="button"
+                            onClick={() => setExpanded(!expanded)}
+                            className="text-xs font-bold text-[#e50046] hover:text-[#0a192f] transition-colors"
+                        >
+                            {expanded ? "Weniger Fragen" : "Mehr Fragen"}
+                        </button>
+                    )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {visibleQuestions.map((question, index) => (
+                        <button
+                            key={index}
+                            type="button"
+                            onClick={() => onQuickQuestion(question)}
+                            className="text-left text-xs p-3 bg-white hover:bg-slate-50 border border-slate-200 hover:border-[#e50046] hover:text-[#e50046] rounded-xl transition-all font-medium text-slate-600 flex items-center gap-2.5"
+                        >
+                            <Icon name="zap" className="w-3.5 h-3.5 shrink-0 text-[#e50046]" />
+                            <span>{question}</span>
+                        </button>
+                    ))}
+                </div>
+            </section>
+        );
+    };
+
+    const EmptyChatState = ({
+        config,
+        input,
+        isLoading,
+        isStreaming,
+        quickQuestions,
+        onInputChange,
+        onQuickQuestion,
+        onSubmit,
+    }) => (
+        <div className="min-h-full flex items-center justify-center px-4 py-8">
+            <div className="bg-white p-5 md:p-7 rounded-3xl shadow-sm border border-slate-200 max-w-3xl w-full text-center space-y-6">
+                <div className="mx-auto w-14 h-14 bg-[#0a192f] rounded-2xl flex items-center justify-center text-[#e50046]">
+                    <Icon name="bot" className="w-7 h-7" />
+                </div>
+                <div>
+                    <h2 className="text-slate-900 font-bold text-2xl md:text-3xl">Wobei kann ich helfen?</h2>
+                </div>
+                <OrientationCard />
+                <ChatInput
+                    config={config}
+                    input={input}
+                    inputId="chat-input-start"
+                    isEmbedded={true}
+                    isLoading={isLoading}
+                    isStreaming={isStreaming}
+                    onInputChange={onInputChange}
+                    onSubmit={onSubmit}
+                />
+                <QuickQuestions quickQuestions={quickQuestions} onQuickQuestion={onQuickQuestion} />
             </div>
         </div>
     );
@@ -92,30 +192,6 @@
         </div>
     );
 
-    const ChatInput = ({ config, input, isLoading, isStreaming, onInputChange, onSubmit }) => (
-        <div className="p-4 bg-white border-t border-slate-200 shadow-sm shrink-0">
-            <form onSubmit={onSubmit} className="max-w-4xl mx-auto flex gap-3">
-                <input
-                    type="text"
-                    value={input}
-                    onChange={(event) => onInputChange(event.target.value)}
-                    placeholder={"Frage zu " + (config?.topic || "diesem Themenfeld") + " stellen..."}
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-sm focus:ring-2 focus:ring-[#e50046] outline-none"
-                    disabled={isLoading || isStreaming}
-                    autoComplete="off"
-                />
-                <button
-                    type="submit"
-                    disabled={isLoading || isStreaming || !input.trim()}
-                    aria-label="Nachricht senden"
-                    className="bg-[#e50046] text-white p-3 rounded-xl hover:opacity-90 disabled:opacity-30 transition-all flex items-center justify-center min-w-[52px]"
-                >
-                    <Icon name="send" className="w-5 h-5" />
-                </button>
-            </form>
-        </div>
-    );
-
     const ChatView = ({
         config,
         copiedIndex,
@@ -138,8 +214,13 @@
                 {messages.length === 0 && (
                     <EmptyChatState
                         config={config}
+                        input={input}
+                        isLoading={isLoading}
+                        isStreaming={isStreaming}
                         quickQuestions={quickQuestions}
+                        onInputChange={onInputChange}
                         onQuickQuestion={onQuickQuestion}
+                        onSubmit={onSubmit}
                     />
                 )}
 
@@ -157,16 +238,16 @@
                 ))}
 
                 {isLoading && (
-                    <div className="flex justify-start">
+                    <div className="flex justify-start" aria-live="polite">
                         <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm flex items-center gap-3">
                             <Icon name="refresh" className="w-4 h-4 text-[#e50046] animate-spin" />
-                            <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Analyse läuft...</span>
+                            <span className="text-xs text-slate-500 font-bold uppercase tracking-widest">Antwort wird vorbereitet ...</span>
                         </div>
                     </div>
                 )}
 
                 {error && (
-                    <div className="flex justify-center p-4">
+                    <div className="flex justify-center p-4" role="alert">
                         <div className="bg-red-50 text-red-700 p-4 rounded-xl flex items-center gap-3 max-w-md border border-red-200">
                             <Icon name="alert" className="w-5 h-5 shrink-0" />
                             <span className="text-sm font-medium">{error}</span>
@@ -175,14 +256,17 @@
                 )}
             </div>
 
-            <ChatInput
-                config={config}
-                input={input}
-                isLoading={isLoading}
-                isStreaming={isStreaming}
-                onInputChange={onInputChange}
-                onSubmit={onSubmit}
-            />
+            {messages.length > 0 && (
+                <ChatInput
+                    config={config}
+                    input={input}
+                    inputId="chat-input-followup"
+                    isLoading={isLoading}
+                    isStreaming={isStreaming}
+                    onInputChange={onInputChange}
+                    onSubmit={onSubmit}
+                />
+            )}
         </React.Fragment>
     );
 

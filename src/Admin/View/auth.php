@@ -12,7 +12,7 @@ function admin_render_setup_password(array $model): void
                 <p class="muted">Legen Sie beim ersten Start das Admin-Passwort fest. Danach führt der Wizard durch API, Projektprofil und Wissensbasis.</p>
             </div>
             <?php admin_render_flash($model['message'], $model['messageType']); ?>
-            <form method="post" class="stack">
+            <form method="post" class="stack" data-working-label="Passwort wird gespeichert ...">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="setup_password">
                 <div>
@@ -38,10 +38,9 @@ function admin_render_login(array $model): void
             <div class="brand">BA</div>
             <div>
                 <h1>Admin-Anmeldung</h1>
-                <p class="muted">Melden Sie sich an, um Projektprofil, API-Schlüssel und Wissensbasis zu verwalten.</p>
             </div>
             <?php admin_render_flash($model['message'], $model['messageType']); ?>
-            <form method="post" class="stack">
+            <form method="post" class="stack" data-working-label="Anmeldung wird geprüft ...">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="login">
                 <div>

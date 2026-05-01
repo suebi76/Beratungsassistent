@@ -15,7 +15,7 @@ function default_project_config(): array
         'scope_summary' => '',
         'scope_bullets' => [],
         'safety' => [
-            'pii_notice' => 'Bitte keine personenbezogenen Daten, vertraulichen Einzelfälle oder geheimhaltungsbedürftigen Inhalte eingeben.',
+            'pii_notice' => 'Bitte keine personenbezogenen Daten eingeben.',
             'pii_rejection_message' => 'Bitte geben Sie keine personenbezogenen Daten oder vertraulichen Einzelfälle ein. Formulieren Sie Ihre Frage allgemeiner, dann helfe ich gerne weiter.',
             'out_of_scope_message' => 'Zu dieser Frage liegen im aktuell geladenen Wissensbestand keine belastbaren Informationen vor.',
             'citation_required' => true,
@@ -56,35 +56,20 @@ function merge_project_config(array $base, array $overrides): array
 
 function load_project_config(): array
 {
-    ensure_app_dirs();
-    $file = project_config_file();
-    if (!file_exists($file)) {
-        return default_project_config();
-    }
-
-    $raw = (string) @file_get_contents($file);
-    $data = json_decode($raw, true);
-    if (!is_array($data)) {
-        return default_project_config();
-    }
-
-    return merge_project_config(default_project_config(), $data);
+    return project_repository()->load();
 }
 
 function save_project_config(array $project): bool
 {
-    ensure_app_dirs();
-    $payload = json_encode(
-        $project,
-        JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-    );
-
-    return $payload !== false && file_put_contents(project_config_file(), $payload . "\n") !== false;
+    try {
+        project_repository()->save($project);
+        return true;
+    } catch (Throwable) {
+        return false;
+    }
 }
 
 function project_profile_is_configured(array $project): bool
 {
-    return trim((string) ($project['title'] ?? '')) !== ''
-        && trim((string) ($project['topic'] ?? '')) !== '';
+    return project_repository()->isConfigured($project);
 }
-
