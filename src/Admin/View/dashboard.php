@@ -166,15 +166,151 @@ function admin_render_document_overview_card(array $project, array $chunks): voi
 
 function admin_render_quality_section(array $model): void
 {
+    $result = is_array($model['qualityTest'] ?? null) ? $model['qualityTest'] : admin_empty_quality_test_result();
+    $query = (string) ($result['query'] ?? '');
+    $limit = admin_quality_test_limit($result['limit'] ?? ADMIN_QUALITY_DEFAULT_CHUNKS);
+    $withAnswer = (bool) ($result['with_answer'] ?? true);
+    $ran = (bool) ($result['ran'] ?? false);
+    $tokens = is_array($result['tokens'] ?? null) ? $result['tokens'] : [];
+    $retrievedChunks = is_array($result['chunks'] ?? null) ? $result['chunks'] : [];
+    $topScore = admin_quality_top_score($retrievedChunks);
+    $limitOptions = [3, 5, 8, 10, 12];
     ?>
-    <div class="card">
-        <h2>Qualitätstest vorbereiten</h2>
-        <p class="muted">Dieser Bereich ist als eigener Arbeitsbereich angelegt, damit spätere Testläufe nicht zwischen Uploads, Vorlagen und API-Konfiguration untergehen.</p>
-        <div class="empty-state">
-            <strong>Geplante nächste Ausbaustufe</strong>
-            <p class="muted">Sinnvoll sind Prüffragen, erwartete Kernaussagen, Quellenkontrolle, Antwortbewertung und ein Export für fachliche Abnahme. Bis dahin kann der Verbindungstest im Bereich KI-Anbieter genutzt werden.</p>
-            <a class="btn btn-secondary" href="<?= e(admin_section_url('provider')) ?>">KI-Verbindung testen</a>
+    <div class="grid two quality-layout">
+        <div class="card">
+            <h2>Testfrage ausführen</h2>
+            <p class="muted">Der Test nutzt dieselbe Retrieval-Logik wie das öffentliche Frontend. So sehen Sie, welche Textabschnitte gefunden werden und ob die Antwort wirklich auf passenden Quellen beruht.</p>
+            <form method="post" action="<?= e(admin_section_url('quality')) ?>" class="stack" data-working-label="Qualitätstest läuft ...">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="run_quality_test">
+                <div>
+                    <label>Testfrage</label>
+                    <textarea name="quality_query" rows="4" required placeholder="Zum Beispiel: Was sind zentrale Aufgaben der Fachkonferenz Biologie?"><?= e($query) ?></textarea>
+                </div>
+                <div class="grid two">
+                    <div>
+                        <label>Maximale Treffer</label>
+                        <select name="quality_limit">
+                            <?php foreach ($limitOptions as $option): ?>
+                                <option value="<?= e((string) $option) ?>" <?= $limit === $option ? 'selected' : '' ?>><?= e((string) $option) ?> Textabschnitte</option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Antworttest</label>
+                        <label class="checkbox-row">
+                            <input type="checkbox" name="with_answer" value="1" <?= $withAnswer ? 'checked' : '' ?>>
+                            <span>KI-Antwort mit aktuellem Anbieter erzeugen</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-primary" type="submit">Qualitätstest starten</button>
+                    <a class="btn btn-secondary" href="<?= e(admin_section_url('chunks')) ?>">Textabschnitte prüfen</a>
+                </div>
+            </form>
         </div>
+
+        <div class="card">
+            <h2>Worauf achten?</h2>
+            <div class="quality-checklist">
+                <div>
+                    <strong>1. Retrieval</strong>
+                    <span class="muted">Die besten Treffer müssen fachlich zur Frage passen. Hohe Scores bei falschen Abschnitten sind ein Chunking- oder Suchproblem.</span>
+                </div>
+                <div>
+                    <strong>2. Quellen</strong>
+                    <span class="muted">Die Antwort darf nur Quellen nennen, die in den gefundenen Textabschnitten vorkommen.</span>
+                </div>
+                <div>
+                    <strong>3. Abgrenzung</strong>
+                    <span class="muted">Bei fachfremden Fragen sollte keine freie Weltwissensantwort entstehen, sondern eine klare Nicht-beantwortbar-Meldung.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <?php if (!$ran): ?>
+        <div class="card">
+            <h2>Noch kein Testlauf</h2>
+            <p class="muted">Starten Sie mit einer realistischen Nutzerfrage. Für die fachliche Abnahme sollten später typische Fragen, Grenzfälle und bewusst fachfremde Fragen dokumentiert werden.</p>
+        </div>
+        <?php return; ?>
+    <?php endif; ?>
+
+    <div class="card">
+        <div class="card-head">
+            <div>
+                <h2>Retrieval-Ergebnis</h2>
+                <p class="muted"><?= e((string) count($retrievedChunks)) ?> Treffer für die aktuelle Testfrage.</p>
+            </div>
+            <span class="count-pill"><?= e((string) count($tokens)) ?> Suchbegriffe</span>
+        </div>
+
+        <?php if ($tokens !== []): ?>
+            <div class="token-list" aria-label="Suchbegriffe">
+                <?php foreach (array_slice($tokens, 0, 24) as $token): ?>
+                    <span><?= e((string) $token) ?></span>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($retrievedChunks === []): ?>
+            <div class="empty-state" style="margin-top:16px">
+                <strong>Keine passenden Textabschnitte gefunden.</strong>
+                <p class="muted">Das ist bei fachfremden Fragen korrekt. Bei fachlich erwartbaren Fragen sollten Suchbegriffe, Chunk-Titel, Tags und Dokumentenqualität geprüft werden.</p>
+            </div>
+        <?php else: ?>
+            <div class="retrieval-list">
+                <?php foreach ($retrievedChunks as $index => $chunk): ?>
+                    <?php
+                    $score = (int) ($chunk['score'] ?? 0);
+                    $scoreLabel = admin_quality_score_label($score, $topScore);
+                    $chunkSource = trim((string) ($chunk['quelle'] ?? ''));
+                    $source = $chunkSource !== '' ? $chunkSource : trim((string) ($chunk['source_file'] ?? ''));
+                    $tags = is_array($chunk['tags'] ?? null) ? $chunk['tags'] : [];
+                    $matchedTerms = is_array($chunk['matched_terms'] ?? null) ? array_map('strval', $chunk['matched_terms']) : [];
+                    ?>
+                    <article class="retrieval-item">
+                        <div class="card-head">
+                            <div>
+                                <strong>[<?= e((string) ($index + 1)) ?>] <?= e((string) ($chunk['title'] ?? 'Ohne Titel')) ?></strong><br>
+                                <span class="mono"><?= e((string) ($chunk['file'] ?? '')) ?></span>
+                            </div>
+                            <span class="score-badge">Score <?= e((string) $score) ?> · <?= e($scoreLabel) ?></span>
+                        </div>
+                        <?php if ($source !== ''): ?>
+                            <p class="muted"><strong>Quelle:</strong> <?= e($source) ?></p>
+                        <?php endif; ?>
+                        <?php if ($tags !== []): ?>
+                            <p class="muted"><strong>Tags:</strong> <?= e(implode(', ', array_slice(array_map('strval', $tags), 0, 10))) ?></p>
+                        <?php endif; ?>
+                        <?php if ($matchedTerms !== []): ?>
+                            <p class="muted"><strong>Trefferbegriffe:</strong> <?= e(implode(', ', array_slice($matchedTerms, 0, 12))) ?></p>
+                        <?php endif; ?>
+                        <p><?= e(excerpt((string) ($chunk['body'] ?? ''), 520)) ?></p>
+                        <details>
+                            <summary>Volltext anzeigen</summary>
+                            <pre class="chunk-preview"><?= e((string) ($chunk['body'] ?? '')) ?></pre>
+                        </details>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <div class="card">
+        <h2>KI-Antwort</h2>
+        <?php if (!$withAnswer): ?>
+            <div class="empty-state">
+                <strong>Antworttest wurde übersprungen.</strong>
+                <p class="muted">Aktivieren Sie den Antworttest, wenn Retrieval und finale Modellantwort zusammen geprüft werden sollen.</p>
+            </div>
+        <?php elseif ((string) ($result['answer_error'] ?? '') !== ''): ?>
+            <div class="alert warning"><?= e((string) $result['answer_error']) ?></div>
+        <?php else: ?>
+            <pre class="answer-preview"><?= e((string) ($result['answer'] ?? '')) ?></pre>
+        <?php endif; ?>
     </div>
     <?php
 }

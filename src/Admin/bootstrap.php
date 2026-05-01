@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/upload_jobs.php';
 require_once __DIR__ . '/system_check.php';
+require_once __DIR__ . '/quality_test.php';
 require_once __DIR__ . '/actions.php';
 require_once __DIR__ . '/page_model.php';
 

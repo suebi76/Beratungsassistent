@@ -6,26 +6,62 @@ const FRONTEND_MAX_TASK_EXAMPLES = 8;
 const FRONTEND_MAX_TEMPLATE_SECTIONS = 6;
 const FRONTEND_MAX_TEMPLATE_OPTIONS = 6;
 
+function frontend_clean_ui_text(string $text): string
+{
+    $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $text = str_replace(['\\"', "\\'", '""'], ['"', "'", '"'], $text);
+    $text = strtr($text, [
+        '„' => '"',
+        '“' => '"',
+        '”' => '"',
+        '«' => '"',
+        '»' => '"',
+        '‚' => "'",
+        '‘' => "'",
+        '’' => "'",
+        '`' => "'",
+    ]);
+    $text = preg_replace('/^\s*(?:[-*]+|\d+[.)])\s*/u', '', $text) ?? $text;
+    $text = normalize_whitespace($text);
+    $text = preg_replace('/\s+([,.!?;:])/u', '$1', $text) ?? $text;
+    $text = preg_replace('/([!?]){2,}/u', '$1', $text) ?? $text;
+
+    return trim($text, " \t\n\r\0\x0B\"'");
+}
+
+function frontend_dedupe_key(string $text): string
+{
+    $key = normalize_search_text($text);
+    $key = preg_replace('/\s+/u', ' ', $key) ?? $key;
+    return $key;
+}
+
+function frontend_add_unique_item(array &$items, array &$seen, string $item, int $maxChars): void
+{
+    $item = frontend_clean_ui_text($item);
+    if ($item === '') {
+        return;
+    }
+    if (mb_strlen($item, 'UTF-8') > $maxChars) {
+        $item = rtrim(mb_substr($item, 0, $maxChars, 'UTF-8'));
+        $item = rtrim($item, " ,.;:");
+    }
+
+    $key = frontend_dedupe_key($item);
+    if ($key === '' || isset($seen[$key])) {
+        return;
+    }
+
+    $seen[$key] = true;
+    $items[] = $item;
+}
+
 function frontend_text_list_from_multiline(string $text, int $limit, int $maxChars = 260): array
 {
     $items = [];
     $seen = [];
     foreach (preg_split('/\R+/u', $text) ?: [] as $line) {
-        $item = normalize_whitespace((string) $line);
-        if ($item === '') {
-            continue;
-        }
-        if (mb_strlen($item, 'UTF-8') > $maxChars) {
-            $item = rtrim(mb_substr($item, 0, $maxChars, 'UTF-8'));
-        }
-
-        $key = mb_strtolower($item, 'UTF-8');
-        if (isset($seen[$key])) {
-            continue;
-        }
-
-        $seen[$key] = true;
-        $items[] = $item;
+        frontend_add_unique_item($items, $seen, (string) $line, $maxChars);
         if (count($items) >= $limit) {
             break;
         }
@@ -62,20 +98,20 @@ function frontend_templates_from_form(array $titles, array $descriptions, array 
     );
 
     for ($sectionIndex = 0; $sectionIndex < $sectionCount; $sectionIndex++) {
-        $title = normalize_whitespace((string) ($titles[$sectionIndex] ?? ''));
-        $description = normalize_whitespace((string) ($descriptions[$sectionIndex] ?? ''));
+        $title = frontend_clean_ui_text((string) ($titles[$sectionIndex] ?? ''));
+        $description = frontend_clean_ui_text((string) ($descriptions[$sectionIndex] ?? ''));
         $labels = frontend_option_list($optionLabels, $sectionIndex);
         $prompts = frontend_option_list($optionPrompts, $sectionIndex);
         $optionCount = min(max(count($labels), count($prompts)), FRONTEND_MAX_TEMPLATE_OPTIONS);
         $options = [];
 
         for ($optionIndex = 0; $optionIndex < $optionCount; $optionIndex++) {
-            $prompt = normalize_whitespace((string) ($prompts[$optionIndex] ?? ''));
+            $prompt = frontend_clean_ui_text((string) ($prompts[$optionIndex] ?? ''));
             if ($prompt === '') {
                 continue;
             }
 
-            $label = normalize_whitespace((string) ($labels[$optionIndex] ?? ''));
+            $label = frontend_clean_ui_text((string) ($labels[$optionIndex] ?? ''));
             if ($label === '') {
                 $label = excerpt($prompt, 48);
             }

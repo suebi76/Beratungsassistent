@@ -7,6 +7,7 @@ putenv('BERATUNGSASSISTENT_DATA_DIR=' . $testRoot);
 require __DIR__ . '/../lib/app.php';
 require __DIR__ . '/../src/Admin/upload_jobs.php';
 require __DIR__ . '/../src/Admin/system_check.php';
+require __DIR__ . '/../src/Admin/quality_test.php';
 require __DIR__ . '/../src/Admin/actions.php';
 
 function test_assert(bool $condition, string $message): void
@@ -84,6 +85,57 @@ try {
     test_assert(count($frontendProject['frontend']['quick_questions']) === 2, 'Schnellfragen sollten bereinigt und dedupliziert werden.');
     test_assert($frontendProject['frontend']['templates'][0]['options'][0]['label'] === 'Checkliste', 'Vorlagenoption wurde nicht korrekt gespeichert.');
     $_POST = [];
+
+    $generatedFrontend = frontend_normalize_generated_content([
+        'quick_questions' => [
+            'Was ist bei "Ankündigung und Gründe für das Rebranding von "telli" zu "AIS.chat"" zu beachten?',
+            'Welche Aufgaben hat die Fachkonferenz Biologie?',
+            'Erläutern Sie das Modulkonzept des Kerncurriculums für die Oberstufe?',
+            'Welche zentralen Vorgaben sind für die Beratung wichtig?',
+            'Welche Aufgaben hat die Fachkonferenz Biologie?',
+        ],
+        'task_examples' => [
+            '1. Fasse die wichtigsten Punkte für eine Beratungssituation zusammen.',
+        ],
+        'templates' => [
+            [
+                'title' => '"Vorlage 1"',
+                'description' => 'Dokumentbasierte Fragen aus dem geladenen Wissensbestand.',
+                'options' => [
+                    ['label' => '"Checkliste"', 'prompt' => 'Erstelle eine kurze Checkliste auf Basis der Wissensbasis.'],
+                    ['label' => '', 'prompt' => ''],
+                ],
+            ],
+        ],
+    ], load_project_config(), []);
+    test_assert(count($generatedFrontend['quick_questions']) === FRONTEND_GENERATED_QUICK_QUESTIONS, 'Generierte Schnellfragen sollten auf sechs brauchbare Fragen normalisiert werden.');
+    test_assert($generatedFrontend['quick_questions'][0] === 'Welche Aufgaben hat die Fachkonferenz Biologie?', 'Brauchbare Schnellfrage sollte erhalten bleiben.');
+    test_assert(!str_contains(implode(' ', $generatedFrontend['quick_questions']), 'Was ist bei "'), 'Titelbasierte Schnellfragen sollten entfernt werden.');
+    test_assert(!str_contains(implode(' ', $generatedFrontend['quick_questions']), 'Erläutern Sie'), 'Imperative Schnellfragen sollten entfernt werden.');
+    test_assert(!in_array('Welche zentralen Vorgaben sind für die Beratung wichtig?', $generatedFrontend['quick_questions'], true), 'Alte generische Fallback-Schnellfragen sollten entfernt werden.');
+    test_assert($generatedFrontend['templates'][0]['title'] === 'Schnell klären', 'Generische Vorlagentitel sollten durch professionelle Fallbacks ersetzt werden.');
+
+    $fallbackProfile = fallback_profile(load_project_config(), [[
+        'title' => 'Ankündigung und Gründe für das Rebranding von "telli" zu "AIS.chat"',
+        'quelle' => 'Testquelle',
+        'tags' => ['Test'],
+        'body' => 'Testinhalt',
+    ]]);
+    test_assert(!str_contains(implode(' ', $fallbackProfile['frontend']['quick_questions']), 'Was ist bei "'), 'Fallback-Schnellfragen dürfen keine Chunk-Titel in Anführungszeichen kopieren.');
+    $publicProject = load_project_config();
+    $publicProject['frontend']['quick_questions'] = [
+        'Welche zentralen Vorgaben sind für die Beratung wichtig?',
+        'Welche Aufgaben ergeben sich aus der Wissensbasis?',
+        'Welche Schritte sollte ich bei der Umsetzung beachten?',
+        'Welche Quellen stützen die Antwort?',
+    ];
+    file_put_contents(chunks_dir() . '/public-payload.md', build_chunk_markdown(['title' => 'Payload'], 'Inhalt'));
+    $publicPayload = public_project_config($publicProject);
+    unlink(chunks_dir() . '/public-payload.md');
+    test_assert(count($publicPayload['frontend']['quick_questions']) === FRONTEND_GENERATED_QUICK_QUESTIONS, 'Öffentliche Schnellfragen sollten alte Meta-Fragen durch Fallbacks ersetzen.');
+    test_assert(!str_contains(implode(' ', $publicPayload['frontend']['quick_questions']), 'Wissensbasis'), 'Öffentliche Schnellfragen dürfen keine Fragen über die Wissensbasis zeigen.');
+    test_assert(!str_contains(implode(' ', $publicPayload['frontend']['quick_questions']), 'Antwort'), 'Öffentliche Schnellfragen dürfen keine Fragen über die spätere Antwort zeigen.');
+    test_assert($publicPayload['frontend']['quick_questions'][0] === 'Wie kann ich ein Beratungsgespräch sinnvoll vorbereiten?', 'Öffentliche Schnellfragen sollten bei alten Platzhaltern auf fachlichere Fallbacks wechseln.');
 
     test_assert(!api_key_is_configured(load_api_config()), 'Leere API-Konfiguration sollte nicht konfiguriert sein.');
     test_assert(model_gateway(load_api_config())->providerId() === 'gemini', 'Standardanbieter sollte Gemini sein.');
@@ -193,6 +245,34 @@ try {
     test_assert($checks !== [], 'Systemcheck sollte Prüfpunkte liefern.');
     test_assert((bool) array_filter($checks, static fn(array $item): bool => ($item['label'] ?? '') === 'PHP-Erweiterung cURL'), 'Systemcheck sollte cURL prüfen.');
     test_assert((bool) array_filter($checks, static fn(array $item): bool => ($item['label'] ?? '') === 'Serverseitiges PDF-Splitting'), 'Systemcheck sollte PDF-Splitting transparent ausweisen.');
+
+    file_put_contents(chunks_dir() . '/operatoren-biologie.md', build_chunk_markdown([
+        'title' => 'Operatoren für die Naturwissenschaften Biologie',
+        'quelle' => 'Kerncurriculum Biologie',
+        'tags' => ['Operatoren', 'Aufgabenstellung', 'Biologie'],
+    ], 'Operatoren beschreiben Handlungen in Aufgabenstellungen für die Fächer Biologie, Chemie und Physik.'));
+    file_put_contents(chunks_dir() . '/fachkonferenz-biologie.md', build_chunk_markdown([
+        'title' => 'Aufgaben der Fachkonferenz und Fachgruppe Biologie',
+        'quelle' => 'Kerncurriculum Biologie',
+        'tags' => ['Biologie', 'Fachkonferenz', 'Schulischer Arbeitsplan'],
+    ], 'Die Fachkonferenz Biologie entwickelt den schuleigenen Arbeitsplan und prüft die Qualität der Umsetzung.'));
+    file_put_contents(chunks_dir() . '/umstellungsfristen.md', build_chunk_markdown([
+        'title' => 'Umstellungsfristen, neue URLs und weitere Schritte',
+        'quelle' => 'Erstinformation Rebranding',
+        'tags' => ['Umstellungsfristen', 'URLs', 'telli'],
+    ], 'Die Umstellungsfristen beziehen sich auf neue URLs und technische Hinweise zum Rebranding.'));
+    $qualityResult = admin_build_quality_test_result('Welche Aufgaben hat die Fachkonferenz Biologie? Bitte kurz antworten und Quellen nennen.', 5, false, $openAiConfig, load_project_config());
+    test_assert($qualityResult['ran'] === true, 'Qualitätstest sollte als ausgeführt markiert werden.');
+    test_assert(count($qualityResult['chunks']) >= 1, 'Qualitätstest sollte passende Textabschnitte finden.');
+    test_assert($qualityResult['chunks'][0]['file'] === 'fachkonferenz-biologie.md', 'Fachkonferenz-Chunk sollte vor allgemeinen Biologie-Treffern stehen.');
+    test_assert(in_array('fachkonferenz', $qualityResult['chunks'][0]['matched_terms'] ?? [], true), 'Qualitätstest sollte passende Kernbegriffe ausweisen.');
+    test_assert(($qualityResult['chunks'][0]['score'] ?? 0) > 0, 'Qualitätstest sollte Scores ausgeben.');
+    test_assert($qualityResult['answer'] === '', 'Qualitätstest ohne Antworttest darf keinen Modellaufruf ausführen.');
+    $taxResult = admin_build_quality_test_result('Welche Fristen gelten für die Einkommensteuererklärung 2025? Bitte nur aus der Wissensbasis beantworten.', 5, false, $openAiConfig, load_project_config());
+    test_assert($taxResult['chunks'] === [], 'Fachfremde Steuerfrage sollte nicht wegen einzelner Fristen-Treffer Retrieval-Kontext erhalten.');
+    unlink(chunks_dir() . '/operatoren-biologie.md');
+    unlink(chunks_dir() . '/fachkonferenz-biologie.md');
+    unlink(chunks_dir() . '/umstellungsfristen.md');
 
     file_put_contents(chunks_dir() . '/eins.md', build_chunk_markdown(['title' => 'Eins'], 'Inhalt eins'));
     file_put_contents(chunks_dir() . '/zwei.md', build_chunk_markdown(['title' => 'Zwei'], 'Inhalt zwei'));

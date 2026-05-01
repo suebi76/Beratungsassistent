@@ -83,6 +83,9 @@ function admin_handle_request(): array
         case 'regenerate_profile':
             admin_action_regenerate_profile($state, $apiConfig, $project);
             break;
+        case 'run_quality_test':
+            admin_action_run_quality_test($state, $apiConfig, $project);
+            break;
         case 'delete_chunk':
             admin_action_delete_chunk($state);
             break;
@@ -508,6 +511,34 @@ function admin_regenerate_project_profile_safely(array $project, array $apiConfi
             'error' => 'Technischer Fehler bei der Profil-Aktualisierung: ' . $exception->getMessage(),
         ];
     }
+}
+
+function admin_action_run_quality_test(array &$state, array $apiConfig, array $project): void
+{
+    $withAnswer = (string) ($_POST['with_answer'] ?? '') === '1';
+    $result = admin_build_quality_test_result(
+        (string) ($_POST['quality_query'] ?? ''),
+        $_POST['quality_limit'] ?? ADMIN_QUALITY_DEFAULT_CHUNKS,
+        $withAnswer,
+        $apiConfig,
+        $project
+    );
+    $state['qualityTest'] = $result;
+
+    if ((string) ($result['error'] ?? '') !== '') {
+        admin_set_message($state, 'error', (string) $result['error']);
+        return;
+    }
+
+    $chunkCount = count(is_array($result['chunks'] ?? null) ? $result['chunks'] : []);
+    if ((string) ($result['answer_error'] ?? '') !== '') {
+        admin_set_message($state, 'warning', 'Retrieval geprüft: ' . $chunkCount . ' Treffer. KI-Antwort konnte nicht erzeugt werden.');
+        return;
+    }
+
+    $message = 'Qualitätstest abgeschlossen: ' . $chunkCount . ' Treffer';
+    $message .= $withAnswer ? ' und KI-Antwort erzeugt.' : ' gefunden.';
+    admin_set_message($state, 'success', $message);
 }
 
 function admin_action_delete_chunk(array &$state): void

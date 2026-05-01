@@ -24,6 +24,7 @@ function admin_build_page_model(array $requestState): array
         'message' => (string) ($requestState['message'] ?? ''),
         'messageType' => (string) ($requestState['messageType'] ?? 'info'),
         'uploadResults' => is_array($requestState['uploadResults'] ?? null) ? $requestState['uploadResults'] : [],
+        'qualityTest' => is_array($requestState['qualityTest'] ?? null) ? $requestState['qualityTest'] : admin_empty_quality_test_result(),
         'setupStep' => $setupStep,
         'chunks' => $chunks,
         'sections' => $sections,
@@ -73,7 +74,7 @@ function admin_sections(): array
         ],
         'quality' => [
             'label' => 'Qualitätstest',
-            'description' => 'Vorbereiteter Bereich für spätere Prüffragen, Testläufe und Antwortbewertung.',
+            'description' => 'Testfragen ausführen, gefundene Textabschnitte mit Score prüfen und KI-Antworten fachlich bewerten.',
             'hint' => 'Prüfung',
         ],
         'provider' => [

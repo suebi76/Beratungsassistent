@@ -41,7 +41,7 @@
             const total = doc.getNumberOfPages();
             for (let p = 1; p <= total; p++) {
                 doc.setPage(p); doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(148, 163, 184);
-                doc.text((config?.title || 'Beratungsassistent') + '  \u00b7  RAG-gestützte Antwort', ML, PH - 8);
+                doc.text((config?.title || 'Beratungsassistent') + '  \u00b7  Antwort aus der Wissensbasis', ML, PH - 8);
                 doc.text(p + ' / ' + total, PW - MR, PH - 8, { align: 'right' });
             }
             const safeName = String(filenameBase || "antwort").toLowerCase().replace(/[^a-z0-9äöüß]+/gi, "-").replace(/^-+|-+$/g, "") || "antwort";

@@ -1,6 +1,6 @@
 # Beratungsassistent
 
-Konfigurierbarer KI-Beratungsassistent mit Upload-basierter Wissensbasis, serverseitigem Gemini-Proxy und geführter Ersteinrichtung.
+Konfigurierbarer KI-Beratungsassistent mit Upload-basierter Wissensbasis, serverseitigem KI-Proxy und geführter Ersteinrichtung.
 
 Beim ersten Start werden Admin-Passwort, Gemini-API-Schlüssel, Titel, Themenfeld und Zielgruppe festgelegt. Anschließend werden eine oder mehrere Dateien hochgeladen, aus denen die Wissensbasis sowie die Beispielinhalte für den Assistenten erzeugt werden.
 
@@ -44,10 +44,10 @@ Persistente Daten liegen im Container-Setup standardmäßig unter `/data`.
 ```text
 index.html              React-Frontend für normale Nutzer
 admin.php               Wizard und Admin-Dashboard
-proxy.php               Serverseitiger Gemini-Proxy mit Retrieval
+proxy.php               Serverseitiger KI-Proxy mit Wissensbasis-Kontext
 project.php             Öffentliche Laufzeit-Konfiguration für das Frontend
 lib/app.php             Kompatibler Bootstrap für die modularisierte PHP-Struktur
-src/                    Fachmodule für Runtime, Config, Security, RAG, Ingestion, Admin und API
+src/                    Fachmodule für Runtime, Config, Security, Wissensbasis, Ingestion, Admin und API
 assets/                 Frontend-CSS und build-freie React/JSX-Komponenten
 config/                 Beispielkonfiguration im Repository
 rag/                    Beispielstruktur für Uploads und generierte Chunks
@@ -76,5 +76,6 @@ S. Schwabe
 ## Lizenz
 
 - Der Softwarecode in diesem Repository steht unter der MIT-Lizenz.
-- Dokumentation, Vorlagen, Beispielinhalte und sonstige nicht-codebezogene Inhalte stehen unter CC BY 4.0, sofern im Einzelfall nichts anderes vermerkt ist.
-- Die vollständigen Lizenztexte stehen in `LICENSE` und `docs/content-license.md`.
+- Dokumentation, Vorlagen, Beispielinhalte, sichtbare redaktionelle UI-Texte, Schulungsmaterial und nicht-codebezogene Designassets stehen unter CC BY-SA 4.0, sofern im Einzelfall nichts anderes vermerkt ist.
+- Hinweise zu Autor, Drittanbieterbestandteilen und Forks stehen in `NOTICE.md` und `TRADEMARKS.md`.
+- Die vollständigen Lizenzhinweise stehen in `LICENSE` und `CONTENT-LICENSE.md`.
