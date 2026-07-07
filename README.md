@@ -39,6 +39,12 @@ Persistente Daten liegen im Container-Setup standardmäßig unter `/data`.
 - Docker- und VPS-Hinweise: `DEPLOY.md`
 - VPS-Paket lokal erstellen: `scripts/create-release-package.ps1`
 
+## Entwicklerdokumentation
+
+- Architektur, Modulkarte und Datenflüsse: `docs/architektur.md`
+- Lokales Setup, Prüfungen und Konventionen: `docs/entwicklung.md`
+- Architekturentscheidungen (ADRs): `docs/adr/`
+
 ## Projektstruktur
 
 ```text
