@@ -15,6 +15,7 @@ function gemini_generate_text(array $parts, array $apiConfig, array $options = [
         return ['ok' => false, 'error' => 'Kein gültiger Gemini-API-Schlüssel konfiguriert.'];
     }
 
+    $model = trim((string) ($apiConfig['model'] ?? DEFAULT_MODEL_NAME)) ?: DEFAULT_MODEL_NAME;
     $maxAttempts = max(1, 1 + (int) ($options['retries'] ?? 0));
     $retryDelaySeconds = max(0, (int) ($options['retryDelaySeconds'] ?? 2));
     $lastResult = ['ok' => false, 'error' => 'Gemini-Aufruf wurde nicht ausgeführt.'];
@@ -23,6 +24,7 @@ function gemini_generate_text(array $parts, array $apiConfig, array $options = [
         $lastResult = gemini_generate_text_once($parts, $apiConfig, $options);
         $lastResult['attempts'] = $attempt;
         if ($lastResult['ok'] ?? false) {
+            $lastResult['model_used'] = $model;
             return $lastResult;
         }
 
@@ -35,6 +37,31 @@ function gemini_generate_text(array $parts, array $apiConfig, array $options = [
         }
     }
 
+    if (($lastResult['retryable'] ?? false) && !empty($options['fallbackModels']) && is_array($options['fallbackModels'])) {
+        foreach (array_values(array_unique(array_map('strval', $options['fallbackModels']))) as $fallbackModel) {
+            $fallbackModel = trim($fallbackModel);
+            if ($fallbackModel === '' || strcasecmp($fallbackModel, $model) === 0) {
+                continue;
+            }
+
+            $fallbackConfig = $apiConfig;
+            $fallbackConfig['model'] = $fallbackModel;
+            $fallbackOptions = $options;
+            unset($fallbackOptions['fallbackModels']);
+
+            $fallbackResult = gemini_generate_text($parts, $fallbackConfig, $fallbackOptions);
+            $fallbackResult['fallback_from'] = $model;
+            if ($fallbackResult['ok'] ?? false) {
+                return $fallbackResult;
+            }
+
+            $lastResult = $fallbackResult;
+            if (!($lastResult['retryable'] ?? false)) {
+                break;
+            }
+        }
+    }
+
     if (($lastResult['retryable'] ?? false) && $maxAttempts > 1) {
         $lastResult['error'] .= ' Der Aufruf wurde ' . $maxAttempts . ' Mal versucht. Bitte den Upload später erneut starten oder vorübergehend ein anderes Gemini-Modell in der Admin-Konfiguration eintragen.';
     }
@@ -44,17 +71,14 @@ function gemini_generate_text(array $parts, array $apiConfig, array $options = [
 
 function gemini_generate_text_once(array $parts, array $apiConfig, array $options = []): array
 {
-    $payload = [
-        'contents' => [[
-            'parts' => $parts,
-        ]],
-        'generationConfig' => [
-            'temperature' => $options['temperature'] ?? 0.2,
-            'maxOutputTokens' => $options['maxOutputTokens'] ?? 16384,
-        ],
-    ];
+    if (!function_exists('curl_init')) {
+        return ['ok' => false, 'error' => 'PHP-cURL ist nicht aktiviert. Bitte die PHP-Erweiterung curl auf dem Server aktivieren.'];
+    }
 
-    $url = 'https://generativelanguage.googleapis.com/v1beta/models/'
+    $payload = gemini_generation_payload($parts, $apiConfig, $options);
+
+    $baseUrl = rtrim((string) ($apiConfig['base_url'] ?? 'https://generativelanguage.googleapis.com'), '/');
+    $url = $baseUrl . '/v1beta/models/'
         . rawurlencode((string) ($apiConfig['model'] ?? DEFAULT_MODEL_NAME))
         . ':generateContent';
 
@@ -96,6 +120,34 @@ function gemini_generate_text_once(array $parts, array $apiConfig, array $option
     }
 
     return ['ok' => true, 'text' => $text, 'raw' => $data];
+}
+
+function gemini_generation_payload(array $parts, array $apiConfig, array $options = []): array
+{
+    $model = trim((string) ($apiConfig['model'] ?? DEFAULT_MODEL_NAME)) ?: DEFAULT_MODEL_NAME;
+    $generationConfig = [
+        'temperature' => $options['temperature'] ?? 0.2,
+        'maxOutputTokens' => $options['maxOutputTokens'] ?? 16384,
+    ];
+
+    if (array_key_exists('thinkingBudget', $options) && gemini_model_supports_thinking_budget($model)) {
+        $generationConfig['thinkingConfig'] = [
+            'thinkingBudget' => (int) $options['thinkingBudget'],
+        ];
+    }
+
+    return [
+        'contents' => [[
+            'parts' => $parts,
+        ]],
+        'generationConfig' => $generationConfig,
+    ];
+}
+
+function gemini_model_supports_thinking_budget(string $model): bool
+{
+    $model = strtolower($model);
+    return str_contains($model, 'gemini-2.5-flash');
 }
 
 function gemini_api_error_is_retryable(int $status, string $message): bool

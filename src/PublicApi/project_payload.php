@@ -4,6 +4,15 @@ declare(strict_types=1);
 function public_project_config(array $project): array
 {
     $configured = project_profile_is_configured($project) && knowledge_base_is_configured();
+    $frontend = is_array($project['frontend'] ?? null) ? $project['frontend'] : [];
+    $fallbackFrontend = frontend_default_content($project, []);
+    $quickQuestions = frontend_clean_generated_list(
+        array_values(is_array($frontend['quick_questions'] ?? null) ? $frontend['quick_questions'] : []),
+        $fallbackFrontend['quick_questions'],
+        FRONTEND_GENERATED_QUICK_QUESTIONS,
+        140,
+        true
+    );
 
     return [
         'configured' => $configured,
@@ -18,11 +27,11 @@ function public_project_config(array $project): array
             'pii_notice' => trim((string) ($project['safety']['pii_notice'] ?? '')),
         ],
         'frontend' => [
-            'welcome_heading' => trim((string) ($project['frontend']['welcome_heading'] ?? 'Beratungs-Assistent')),
-            'welcome_text' => trim((string) ($project['frontend']['welcome_text'] ?? '')),
-            'quick_questions' => array_values($project['frontend']['quick_questions'] ?? []),
-            'task_examples' => array_values($project['frontend']['task_examples'] ?? []),
-            'templates' => array_values($project['frontend']['templates'] ?? []),
+            'welcome_heading' => trim((string) ($frontend['welcome_heading'] ?? 'Beratungs-Assistent')),
+            'welcome_text' => trim((string) ($frontend['welcome_text'] ?? '')),
+            'quick_questions' => $quickQuestions,
+            'task_examples' => array_values($frontend['task_examples'] ?? []),
+            'templates' => array_values($frontend['templates'] ?? []),
         ],
         'knowledge_profile' => [
             'document_summary' => trim((string) ($project['knowledge_profile']['document_summary'] ?? '')),
@@ -31,4 +40,3 @@ function public_project_config(array $project): array
         ],
     ];
 }
-

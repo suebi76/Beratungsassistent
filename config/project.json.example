@@ -10,7 +10,7 @@
   "scope_summary": "",
   "scope_bullets": [],
   "safety": {
-    "pii_notice": "Bitte keine personenbezogenen Daten, vertraulichen Einzelfälle oder geheimhaltungsbedürftigen Inhalte eingeben.",
+    "pii_notice": "Bitte keine personenbezogenen Daten eingeben.",
     "pii_rejection_message": "Bitte geben Sie keine personenbezogenen Daten oder vertraulichen Einzelfälle ein. Formulieren Sie Ihre Frage allgemeiner, dann helfe ich gerne weiter.",
     "out_of_scope_message": "Zu dieser Frage liegen im aktuell geladenen Wissensbestand keine belastbaren Informationen vor.",
     "citation_required": true,

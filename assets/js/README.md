@@ -10,7 +10,7 @@ Das Frontend bleibt bewusst build-frei, damit das bestehende Deployment unverän
 4. `app-shell.jsx`: Header, Footer und technische Start-/Fehlerzustände.
 5. `chat-view.jsx`: Chat-Ansicht, Nachrichten, Eingabefeld und Fehleranzeige.
 6. `templates-view.jsx`: Vorlagen- und Schnelleinstieg-Ansicht.
-7. `privacy-modals.jsx`: Datenschutz- und DSB-Modals.
+7. `privacy-modals.jsx`: Datenschutz- und technische Hinweisdialoge.
 8. `app.jsx`: Zustand, API-Aufrufe und Verdrahtung der Komponenten.
 
 ## Regeln

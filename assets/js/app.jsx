@@ -99,6 +99,33 @@
                 let buffer = "";
                 let fullText = "";
 
+                const applyStreamLine = (line) => {
+                    const trimmedLine = String(line || "").trim();
+                    if (!trimmedLine.startsWith("data: ")) return;
+                    const payload = trimmedLine.slice(6).trim();
+                    if (!payload || payload === "[DONE]") return;
+
+                    let data;
+                    try {
+                        data = JSON.parse(payload);
+                    } catch (parseError) {
+                        return;
+                    }
+
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+
+                    const chunk = data.text || data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                    if (!chunk) return;
+                    fullText += chunk;
+                    setMessages((current) => {
+                        const updated = current.slice();
+                        updated[updated.length - 1] = { role: "assistant", text: fullText };
+                        return updated;
+                    });
+                };
+
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
@@ -107,30 +134,13 @@
                     buffer = lines.pop() || "";
 
                     for (const line of lines) {
-                        if (!line.startsWith("data: ")) continue;
-                        const payload = line.slice(6).trim();
-                        if (!payload || payload === "[DONE]") continue;
-
-                        let data;
-                        try {
-                            data = JSON.parse(payload);
-                        } catch (parseError) {
-                            continue;
-                        }
-
-                        if (data.error) {
-                            throw new Error(data.error);
-                        }
-
-                        const chunk = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                        if (!chunk) continue;
-                        fullText += chunk;
-                        setMessages((current) => {
-                            const updated = current.slice();
-                            updated[updated.length - 1] = { role: "assistant", text: fullText };
-                            return updated;
-                        });
+                        applyStreamLine(line);
                     }
+                }
+
+                buffer += decoder.decode();
+                if (buffer.trim() !== "") {
+                    buffer.split("\n").forEach(applyStreamLine);
                 }
 
                 if (!fullText) {

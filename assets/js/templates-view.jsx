@@ -8,12 +8,12 @@
                     <Icon name="zap" />
                 </div>
                 <div>
-                    <h3 className="font-bold text-slate-800 text-base leading-tight">Schnelleinstieg</h3>
-                    <p className="text-xs text-slate-400 mt-1">Diese Fragen werden direkt in den Chat übernommen.</p>
+                    <h3 className="font-bold text-slate-800 text-base leading-tight">Schnellfragen</h3>
+                    <p className="text-xs text-slate-500 mt-1">Für einen schnellen Einstieg. Die Frage wird in den Chat übernommen.</p>
                 </div>
             </div>
             <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
-                {quickQuestions.map((question, index) => (
+                {quickQuestions.slice(0, 4).map((question, index) => (
                     <button
                         key={index}
                         onClick={() => onApplyTemplate(question)}
@@ -35,7 +35,7 @@
                 </div>
                 <div>
                     <h3 className="font-bold text-slate-800 text-base leading-tight">{section.title || "Vorlage"}</h3>
-                    <p className="text-xs text-slate-400 mt-1">{section.description || "Textvorlagen für wiederkehrende Beratungsfälle."}</p>
+                    <p className="text-xs text-slate-500 mt-1">{section.description || "Hilfen für wiederkehrende fachliche Anliegen."}</p>
                 </div>
             </div>
             <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -59,7 +59,7 @@
                 <Icon name="layers" className="w-6 h-6" />
             </div>
             <h3 className="font-bold text-[#0a192f] mb-2">Keine Vorlagen vorhanden</h3>
-            <p className="text-sm text-slate-500">Im Admin-Bereich können nach dem Dateiupload automatisch Vorlagen und Fragen generiert werden.</p>
+            <p className="text-sm text-slate-500">Sie können trotzdem direkt eine Frage in den Chat eingeben.</p>
         </div>
     );
 
@@ -67,14 +67,12 @@
         <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-100">
             <div className="max-w-3xl mx-auto space-y-5">
                 <div className="bg-[#0a192f] text-white rounded-3xl p-5 shadow-sm">
-                    <h2 className="font-bold text-sm mb-3 flex items-center gap-2">
-                        <Icon name="info" className="w-4 h-4 text-[#e50046]" /> So nutzen Sie die Vorlagen
+                    <h2 className="font-bold text-lg mb-2 flex items-center gap-2">
+                        <Icon name="layers" className="w-5 h-5 text-[#e50046]" /> Vorlagen
                     </h2>
-                    <ol className="space-y-1.5 text-xs text-slate-300">
-                        <li className="flex gap-2.5"><span className="text-[#e50046] font-bold shrink-0">1.</span> Wählen Sie eine Kategorie.</li>
-                        <li className="flex gap-2.5"><span className="text-[#e50046] font-bold shrink-0">2.</span> Klicken Sie eine Option an; die Formulierung wird in den Chat übernommen.</li>
-                        <li className="flex gap-2.5"><span className="text-[#e50046] font-bold shrink-0">3.</span> Sie können den Text im Chat noch anpassen, bevor Sie ihn absenden.</li>
-                    </ol>
+                    <p className="text-sm text-slate-300 leading-relaxed">
+                        Nutzen Sie Vorlagen, wenn Sie eine Frage strukturieren möchten. Die Formulierung wird in den Chat übernommen und kann vor dem Absenden angepasst werden.
+                    </p>
                 </div>
 
                 {quickQuestions.length > 0 && (

@@ -2,6 +2,8 @@ config/config.php
 config/project.json
 rag/.admin_password
 rag/.rate-limit/
+locks/
+tmp/
 rag/chunks/*
 !rag/chunks/.gitkeep
 rag/uploads/*
